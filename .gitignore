@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.venv/
+.test-tools/
+.runtime/
+reports/arcane-engine-check/
+dist/
+Arcane Misfires/ArcaneMisfires.esp
+tests/arcane_manual/ArcaneMisfiresTest.esp
+.env
+.env.*

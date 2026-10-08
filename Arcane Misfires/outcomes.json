@@ -1,0 +1,11 @@
+[
+  {"key":"fire", "name":"Cinder Recoil", "effect":14, "id":"firedamage", "magnitude":[1,2,3], "duration":[2,3,4]},
+  {"key":"frost", "name":"Rime Recoil", "effect":16, "id":"frostdamage", "magnitude":[1,2,3], "duration":[2,3,4]},
+  {"key":"shock", "name":"Static Recoil", "effect":15, "id":"shockdamage", "magnitude":[1,2,3], "duration":[2,3,4]},
+  {"key":"fatigue", "name":"Arcane Exhaustion", "effect":25, "id":"damagefatigue", "magnitude":[5,10,15], "duration":[2,3,4]},
+  {"key":"burden", "name":"Leadbound Limbs", "effect":7, "id":"burden", "magnitude":[15,30,50], "duration":[6,9,12]},
+  {"key":"blind", "name":"Afterimage", "effect":47, "id":"blind", "magnitude":[10,20,35], "duration":[8,12,16]},
+  {"key":"silence", "name":"Severed Invocation", "effect":46, "id":"silence", "magnitude":[1,1,1], "duration":[6,9,12]},
+  {"key":"magicka", "name":"Hollow Reservoir", "effect":19, "id":"drainmagicka", "magnitude":[5,10,20], "duration":[8,12,16]},
+  {"key":"weakness", "name":"Fractured Ward", "effect":31, "id":"weaknesstomagicka", "magnitude":[10,20,30], "duration":[10,15,20]}
+]

@@ -1,0 +1,6 @@
+PageName: Arcane Misfires
+Backfires: Backfires
+Enabled: Enable backfires
+Chance: Backfire chance per failed cast (%)
+Severity: Maximum severity (1-3)
+Messages: Show backfire messages
