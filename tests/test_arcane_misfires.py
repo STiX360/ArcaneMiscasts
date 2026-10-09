@@ -14,7 +14,7 @@ import build_arcane_misfires as builder
 
 MOD = builder.MOD
 MOCK = '''
-now=0; playing={}; values={}; applied={}; messages={}; audio=true
+now=0; playing={}; values={}; applied={}; messages={}; audio=true; experience={}
 player={}; mana={current=100}; health={current=100}
 spell={id='test',type=0,cost=20,effects={{id='feather',duration=10,
     magnitudeMin=10,magnitudeMax=10,effect={school='alteration',baseCost=1}}}}
@@ -24,7 +24,7 @@ core={getSimulationTime=function() return now end, stats={Skill={records={}}},
     sound={isEnabled=function() return audio end,
         isSoundPlaying=function(path,actor) assert(actor==player); return playing[path] or false end,
         playSound3d=function() end},
-    magic={SPELL_TYPE={Spell=0},effects={records=setmetatable({}, {__index=function() return {hitSound=''} end})},
+    magic={SPELL_TYPE={Spell=0},effects={records=setmetatable({}, {__index=function() return {hitSound='',school=effectSchool or 'alteration'} end})},
         spells={records=setmetatable({}, {__index=function(_,id)
         return {name=id,effects={{id='burden',effect={hitSound=''}}}}
     end})}}}
@@ -37,7 +37,8 @@ settings={get=function(_,key) return values[key] end, set=function(_,key,value) 
 I={Settings={registerPage=function() end,registerGroup=function() end},
     AnimationController={addPlayBlendedAnimationHandler=function(fn) startHandler=fn end,
         addTextKeyHandler=function(_,fn) releaseHandler=fn end},
-    SkillProgression={SKILL_USE_TYPES={Spellcast_Success=0},addSkillUsedHandler=function(fn) successHandler=fn end}}
+    SkillProgression={SKILL_USE_TYPES={Spellcast_Success=0},addSkillUsedHandler=function(fn) successHandler=fn end,
+        skillUsed=function(skill,options) table.insert(experience,{skill=skill,useType=options.useType}); successHandler(skill,options) end}}
 package.preload['openmw.core']=function() return core end
 package.preload['openmw.self']=function() return player end
 package.preload['openmw.types']=function() return types end
@@ -138,6 +139,43 @@ class ArcaneTests(unittest.TestCase):
     def test_dead_player_excluded(self):
         self.runlua('health.current=0; fail(); assert(#applied==0)')
 
+    def test_experience_setting_combinations(self):
+        for enabled in (True, False):
+            for only_misfires in (True, False):
+                for misfire_school in (True, False):
+                    for misfire in (True, False):
+                        with self.subTest(enabled=enabled, only=only_misfires, school=misfire_school, misfire=misfire):
+                            self.setUp()
+                            settings = self.lua.globals()['values']
+                            settings.failedCastExperience = enabled
+                            settings.experienceOnlyMisfires = only_misfires
+                            settings.useMisfireSchool = misfire_school
+                            settings.chance = 100 if misfire else 0
+                            self.runlua("effectSchool='destruction'; fail()")
+                            awards = self.lua.globals().experience
+                            expected = enabled and (misfire or not only_misfires)
+                            self.assertEqual(len(awards), int(expected))
+                            if expected:
+                                self.assertEqual(awards[1].skill, 'destruction' if misfire and misfire_school else 'alteration')
+                                self.assertEqual(awards[1].useType, 0)
+                            self.runlua('tick(0.2)')
+                            self.assertEqual(len(awards), int(expected))
+
+    def test_all_failures_with_backfires_disabled(self):
+        self.runlua("values.enabled=false; values.experienceOnlyMisfires=false; fail(); assert(#applied==0 and #experience==1 and experience[1].skill=='alteration')")
+
+    def test_success_and_invalid_attempts_do_not_award_bonus_experience(self):
+        for attempt in ("start(); successHandler('alteration',{useType=0}); release(); playing.alteration=true; tick(0.1)",
+                        'enchanted={}; fail()', 'spell.type=2; fail()',
+                        'start(); release(); tick(0.7)', 'audio=false; fail()',
+                        'playing.alteration=true; fail()', 'health.current=0; fail()'):
+            with self.subTest(attempt=attempt):
+                self.setUp()
+                self.runlua('values.experienceOnlyMisfires=false; '+attempt+'; assert(#experience==0)')
+
+    def test_experience_settings_save_and_migrate(self):
+        self.runlua('values.failedCastExperience=false; values.experienceOnlyMisfires=false; values.useMisfireSchool=false; local data=mod.engineHandlers.onSave(); mod.engineHandlers.onLoad(data); tick(0.1); assert(values.failedCastExperience==false and values.experienceOnlyMisfires==false and values.useMisfireSchool==false); mod.engineHandlers.onLoad({version=2,settings={chance=100}}); tick(0.1); assert(values.failedCastExperience and values.experienceOnlyMisfires and values.useMisfireSchool)')
+
 
 class PackageTests(unittest.TestCase):
     def test_temporary_penalties_outlast_cast_recovery(self):
@@ -185,8 +223,10 @@ class PackageTests(unittest.TestCase):
 
     def test_archive_matches_source(self):
         with ZipFile(ROOT/f'dist/Arcane-Misfires-{builder.VERSION}.zip') as archive:
-            for path in MOD.rglob('*'):
-                if path.is_file(): self.assertEqual(archive.read(path.relative_to(MOD).as_posix()),path.read_bytes())
+            self.assertEqual(set(archive.namelist()), set(builder.PACKAGE_FILES))
+            for name in builder.PACKAGE_FILES:
+                self.assertEqual(archive.read(name),(MOD/name).read_bytes())
+            self.assertNotIn('outcomes.json', archive.namelist())
             self.assertFalse(any(n.startswith(('meshes/','textures/','sound/')) for n in archive.namelist()))
 
 

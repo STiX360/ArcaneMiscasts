@@ -29,14 +29,18 @@ notes in `CHANGELOG.md`. Commit the source, then push that commit and its matchi
 version tag. For the prepared version:
 
 ```powershell
-git tag v0.1.2
+git tag v0.1.3
 git push origin main
-git push origin v0.1.2
+git push origin v0.1.3
 ```
 
 Set your GitHub remote before using these commands. Substitute the branch name
 if the repository does not use `main`. Never reuse a published tag for changed
 source. A mismatched tag, missing notes, or missing ZIP fails before publishing.
+Commits alone run validation, not publication: push the matching tag separately.
+For Selected branches and tags on the `nexus` environment, add a Branch rule
+`main` and a Tag rule `v*`. These rules permit deployment but do not enable Nexus
+uploads by themselves; the variables and secret listed above are still required.
 
 `Publish Releases` builds the tagged source and publishes the exact archive as a
 GitHub Release asset. Versions below 1.0 are marked prereleases, so link to the

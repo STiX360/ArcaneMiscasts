@@ -4,3 +4,9 @@ Enabled: Enable backfires
 Chance: Backfire chance per failed cast (%)
 Severity: Maximum severity (1-3)
 Messages: Show backfire messages
+FailedCastExperience: Experience From Failed Casts
+FailedCastExperienceDescription: Gain the same skill progress from a failed cast as from a successful cast.
+ExperienceOnlyMisfires: Experience Only On Misfires
+ExperienceOnlyMisfiresDescription: Award failed-cast experience only when a misfire occurs. Turn off to award experience for all failed casts. Requires Experience From Failed Casts.
+UseMisfireSchool: Use Misfire Effect's School
+UseMisfireSchoolDescription: When a misfire occurs, award experience in the misfire effect's school instead of the attempted spell's school. Failed casts without a misfire use the attempted spell's school. Requires Experience From Failed Casts.

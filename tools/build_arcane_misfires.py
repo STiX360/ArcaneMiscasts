@@ -12,7 +12,7 @@ if not re.fullmatch(r'\d+\.\d+\.\d+', VERSION):
     raise ValueError('VERSION must contain a numeric X.Y.Z version')
 PACKAGE_FILES = (
     'ArcaneMisfires.esp', 'ArcaneMisfires.omwscripts', 'README.md',
-    'outcomes.json', 'scripts/arcane_misfires/player.lua',
+    'scripts/arcane_misfires/player.lua',
     'scripts/arcane_misfires/policy.lua', 'l10n/ArcaneMisfires/en.yaml',
 )
 

@@ -10,6 +10,18 @@ local schools = {'alteration','conjuration','destruction','illusion','mysticism'
 local spells = {'fire','frost','shock','burden','blind','silence','magicka','weakness','fatigue','success','power'}
 local prepared, elapsed, readyAt = false, 0, nil
 
+I.SkillProgression.addSkillUsedHandler(function(skill, options)
+    if not prepared or not types.NPC.stats.skills[skill] then return end
+    for _, school in ipairs(schools) do
+        if skill == school then
+            local message = string.format('Test XP: %s +%.2f use points', skill, options.skillGain)
+            ui.showMessage(message)
+            print('[Arcane Misfires Test] '..message)
+            return
+        end
+    end
+end)
+
 local function refill()
     for name, value in pairs({health=500,magicka=2000,fatigue=1000}) do
         local stat = types.Actor.stats.dynamic[name](self)
@@ -29,6 +41,9 @@ local function update(dt)
         for _, id in ipairs(spells) do types.Actor.spells(self):add('amft_'..id) end
         settings:set('enabled',true); settings:set('chance',100)
         settings:set('severity',1); settings:set('messages',true)
+        settings:set('failedCastExperience',true)
+        settings:set('experienceOnlyMisfires',true)
+        settings:set('useMisfireSchool',true)
         types.Actor.setSelectedSpell(self, core.magic.spells.records.amft_fire)
         readyAt = elapsed + 0.3
         prepared = true

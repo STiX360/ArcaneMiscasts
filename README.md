@@ -6,6 +6,14 @@ Failed spells can backfire with temporary, spell-themed penalties in OpenMW.
 Ordinary failed player casts have a **15% chance** of a backfire by default.
 There is **no cooldown**; every detected failure gets its own roll.
 
+Three Scripts settings toggles control failed-cast experience and start enabled:
+**Experience From Failed Casts**, **Experience Only On Misfires**, and
+**Use Misfire Effect's School**. Defaults award normal successful-cast progress
+in the backlash effect's school only when a misfire occurs. Turn off the second
+to reward every detected failed cast, including with backfires disabled;
+failures without a misfire use the attempted spell's school. Turn off the third
+to always use the attempted school. The first toggle off disables all such XP.
+
 ## Requirements
 
 - Morrowind and a compatible OpenMW build. Tested on OpenMW **0.52 development**, revision `73765c58a2`; older releases are not certified.

@@ -23,6 +23,14 @@ does not replace the real spell-record plugin.
 ## Gameplay
 
 Default chance: 15% per confirmed failed ordinary player spell, with no cooldown.
+
+The Scripts settings page includes three experience toggles, all on by default:
+Experience From Failed Casts, Experience Only On Misfires, and Use Misfire
+Effect's School. By default, misfires award normal successful-cast skill progress
+in the backlash effect's school. Disable the second toggle to reward every
+detected failure (including when backfires are disabled); failures without a
+misfire use the attempted spell's school. Disable the third to always use the
+attempted school. Disabling the first stops all failed-cast experience.
 Successful spells, powers, scrolls, enchanted items, no-magicka attempts, and
 unreleased interrupted casts are excluded. NPCs are unaffected.
 

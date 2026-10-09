@@ -19,6 +19,42 @@ through the game's Load menu.
 
 ## Quick Checks
 
+### Failed-Cast Experience
+
+All three experience toggles start on. The fixture displays `Test XP: <school>
++<amount> use points` whenever a magic skill receives experience, and records it
+in the test log. These are normal skill-use points, not skill levels or percent.
+The character's very low skills can level up quickly; this is expected. Open the
+character menu and hover over a skill to inspect its progress.
+
+Use `AM Test - Restoration Backfire` for the following checks: its attempted
+school is Restoration, but its Fatigue Damage misfire belongs to Destruction.
+Keep maximum severity at one and use F10 to refill resources as needed. Wait
+for the casting-failure sound to finish between attempts.
+
+| Experience From Failed Casts | Experience Only On Misfires | Use Misfire Effect's School | Backfire chance | Expected XP on failure |
+| --- | --- | --- | --- | --- |
+| On | On | On | 100% | Destruction, once |
+| On | On | Off | 100% | Restoration, once |
+| On | On | On | 0% | None |
+| On | Off | On | 0% | Restoration, once |
+| On | Off | On | 100% | Destruction, once |
+| On | Off | Off | 100% | Restoration, once |
+| Off | Either | Either | 100% or 0% | None |
+
+Also disable backfires with the first XP toggle on and the second off: failed
+casts should still award Restoration experience. With the second on, disabling
+backfires should give no failed-cast experience. Test Guaranteed Success while
+not silenced: it should award ordinary Alteration experience exactly once,
+regardless of the failed-cast toggles. F9 insufficient-magicka attempts, powers,
+and interrupted casts must award no failed-cast XP. Save and reload with the
+three XP toggles off, confirm they remain off, then restore your preferred values.
+
+`-SmokeTest` also casts a failing Restoration test spell and verifies that its
+misfire awards Destruction progress using OpenMW's normal successful-cast gain.
+
+### Backfire Behaviour
+
 1. Cast the selected `AM Test - Fire Recoil`. Expect a casting failure followed
    by `Miscast: Cinder Recoil`, a Fire Damage effect, and a small health loss.
 2. Select Frost or Shock Recoil and repeat. Their corresponding elemental

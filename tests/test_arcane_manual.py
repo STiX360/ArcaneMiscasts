@@ -30,7 +30,8 @@ package.preload['openmw.types']=function() return types end
 package.preload['openmw.input']=function() return {KEY={F9=9,F10=10}} end
 package.preload['openmw.storage']=function() return {playerSection=function() return settings end} end
 package.preload['openmw.ui']=function() return {showMessage=function() end} end
-package.preload['openmw.interfaces']=function() return {UI={getMode=function() return mode end}} end
+package.preload['openmw.interfaces']=function() return {UI={getMode=function() return mode end},
+    SkillProgression={addSkillUsedHandler=function(fn) experienceHandler=fn end}} end
 function tick(dt) fixture.engineHandlers.onUpdate(dt) end
 function key(code) fixture.engineHandlers.onKeyPress({code=code}) end
 '''
@@ -59,6 +60,9 @@ class ManualTests(unittest.TestCase):
 
     def test_new_game_reprepares(self):
         self.lua.execute('tick(0.6); values.chance=0; fixture.engineHandlers.onLoad(nil); tick(1); assert(values.chance==100)')
+
+    def test_experience_defaults_and_readout(self):
+        self.lua.execute("tick(0.6); assert(values.failedCastExperience and values.experienceOnlyMisfires and values.useMisfireSchool); experienceHandler('destruction',{skillGain=1})")
 
 
 class BundleTests(unittest.TestCase):
