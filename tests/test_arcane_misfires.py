@@ -14,18 +14,21 @@ import build_arcane_misfires as builder
 
 MOD = builder.MOD
 MOCK = '''
-now=0; playing={}; values={}; applied={}; messages={}; audio=true; experience={}
+now=0; playing={}; values={}; applied={}; messages={}; audio=true; experience={}; events={}
 player={}; mana={current=100}; health={current=100}
 spell={id='test',type=0,cost=20,effects={{id='feather',duration=10,
     magnitudeMin=10,magnitudeMax=10,effect={school='alteration',baseCost=1}}}}
 selected=spell
 local schools={'alteration','conjuration','destruction','illusion','mysticism','restoration'}
 core={getSimulationTime=function() return now end, stats={Skill={records={}}},
+    sendGlobalEvent=function(name,data) table.insert(events,{name=name,data=data}) end,
+    contentFiles={has=function(id) return id=='NiftySpellPack.omwaddon' and niftyInstalled or false end},
     sound={isEnabled=function() return audio end,
         isSoundPlaying=function(path,actor) assert(actor==player); return playing[path] or false end,
         playSound3d=function() end},
     magic={SPELL_TYPE={Spell=0},effects={records=setmetatable({}, {__index=function() return {hitSound='',school=effectSchool or 'alteration'} end})},
         spells={records=setmetatable({}, {__index=function(_,id)
+        if id=='nsp_wildintervention' then return niftyRecord end
         return {name=id,effects={{id='burden',effect={hitSound=''}}}}
     end})}}}
 for _,school in ipairs(schools) do core.stats.Skill.records[school]={school={failureSound=school}} end
@@ -45,6 +48,7 @@ package.preload['openmw.types']=function() return types end
 package.preload['openmw.storage']=function() return {playerSection=function() return settings end} end
 package.preload['openmw.ui']=function() return {showMessage=function(msg) table.insert(messages,msg) end} end
 package.preload['openmw.interfaces']=function() return I end
+package.preload['scripts.arcane_misfires.wild_player']=function() return {} end
 package.preload['openmw.animation']=function() return {addVfx=function(actor,model,options)
     visual={actor=actor,model=model,options=options}
 end} end
@@ -175,6 +179,84 @@ class ArcaneTests(unittest.TestCase):
 
     def test_experience_settings_save_and_migrate(self):
         self.runlua('values.failedCastExperience=false; values.experienceOnlyMisfires=false; values.useMisfireSchool=false; local data=mod.engineHandlers.onSave(); mod.engineHandlers.onLoad(data); tick(0.1); assert(values.failedCastExperience==false and values.experienceOnlyMisfires==false and values.useMisfireSchool==false); mod.engineHandlers.onLoad({version=2,settings={chance=100}}); tick(0.1); assert(values.failedCastExperience and values.experienceOnlyMisfires and values.useMisfireSchool)')
+
+    def prepare_teleport(self, effect_id):
+        self.runlua("""
+            niftyInstalled=true
+            niftyRecord={name='Wild Intervention',effects={{id='nsp_wildintervention'}}}
+            core.magic.effects.records.nsp_wildintervention={school='mysticism',hitSound=''}
+            function failTeleport()
+                start(); release(); playing.mysticism=true; tick(0.1)
+            end
+            spell.effects[1].effect.school='mysticism'
+        """)
+        self.lua.globals().spell.effects[1].id = effect_id
+
+    def test_nifty_replaces_each_teleport_miscast(self):
+        for effect_id in ('recall', 'divineintervention', 'almsiviintervention'):
+            with self.subTest(effect=effect_id):
+                self.setUp()
+                self.prepare_teleport(effect_id)
+                self.runlua("""
+                    failTeleport()
+                    assert(#applied==1 and applied[1].id=='nsp_wildintervention')
+                    assert(#applied[1].effects==1 and applied[1].effects[1]==0)
+                    assert(applied[1].caster==player and applied[1].ignoreReflect
+                        and applied[1].ignoreSpellAbsorption and not applied[1].stackable)
+                    assert(messages[1]=='Miscast: Wild Intervention')
+                    assert(#experience==1 and experience[1].skill=='mysticism')
+                    assert(mod.interface.getBackfireCount()==1)
+                """)
+
+    def test_wild_disabled_uses_ordinary_backlash(self):
+        self.prepare_teleport('recall')
+        self.runlua("values.niftyWildIntervention=false; failTeleport(); assert(#applied==1 and applied[1].id=='amf_magicka_2' and #events==0)")
+
+    def test_standalone_wild_when_nifty_unavailable(self):
+        for effect_id in ('recall', 'divineintervention', 'almsiviintervention'):
+            for condition in ('niftyInstalled=false', 'niftyRecord=nil'):
+                with self.subTest(effect=effect_id, condition=condition):
+                    self.setUp()
+                    self.prepare_teleport(effect_id)
+                    self.runlua(condition+"""; failTeleport()
+                        assert(#applied==0 and #events==1)
+                        assert(events[1].name=='AMF_WildIntervention' and events[1].data.target==player)
+                        assert(mod.interface.getBackfireCount()==1 and #experience==1)
+                        assert(messages[1]=='Miscast: Wild Intervention')
+                    """)
+
+    def test_standalone_wild_does_not_bypass_roll_or_enable(self):
+        for condition in ('values.chance=0', 'values.enabled=false'):
+            with self.subTest(condition=condition):
+                self.setUp()
+                self.prepare_teleport('recall')
+                self.runlua("niftyInstalled=false; "+condition+"; failTeleport(); assert(#applied==0 and #events==0)")
+
+    def test_nifty_respects_miscast_roll_and_success(self):
+        for condition in ('values.chance=0', 'values.enabled=false',
+                          "successHandler('mysticism',{useType=0})"):
+            with self.subTest(condition=condition):
+                self.setUp()
+                self.prepare_teleport('recall')
+                self.runlua("start(); release(); "+condition+"; playing.mysticism=true; tick(0.1); assert(#applied==0)")
+
+    def test_nifty_does_not_replace_other_mysticism_spells(self):
+        self.prepare_teleport('detectkey')
+        self.runlua("failTeleport(); assert(applied[1].id=='amf_magicka_2')")
+
+    def test_nifty_detects_teleport_in_multieffect_spell(self):
+        self.prepare_teleport('detectkey')
+        self.runlua("table.insert(spell.effects,{id='recall',effect={school='mysticism',baseCost=1}}); failTeleport(); assert(applied[1].id=='nsp_wildintervention')")
+
+    def test_nifty_setting_defaults_saves_and_migrates(self):
+        self.runlua("""
+            assert(values.niftyWildIntervention==true)
+            values.niftyWildIntervention=false
+            mod.engineHandlers.onLoad(mod.engineHandlers.onSave()); tick(0.1)
+            assert(values.niftyWildIntervention==false)
+            mod.engineHandlers.onLoad({version=2,settings={chance=100}}); tick(0.1)
+            assert(values.niftyWildIntervention==true)
+        """)
 
 
 class PackageTests(unittest.TestCase):

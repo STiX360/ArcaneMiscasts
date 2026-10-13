@@ -10,7 +10,7 @@ from build_arcane_misfires import build
 if __name__ == '__main__':
     build()
     suite = unittest.TestSuite()
-    for pattern in ('test_arcane_misfires.py', 'test_arcane_manual.py'):
+    for pattern in ('test_arcane_misfires.py', 'test_arcane_manual.py', 'test_wild_intervention.py'):
         suite.addTests(unittest.defaultTestLoader.discover(str(ROOT / 'tests'), pattern))
     result = unittest.TextTestRunner(verbosity=2).run(suite)
     sys.exit(not result.wasSuccessful())

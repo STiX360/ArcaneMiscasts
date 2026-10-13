@@ -2,7 +2,7 @@
 
 Failed spells can backfire with temporary, spell-themed penalties in OpenMW.
 
-**Version 0.1.2, beta.** A small standalone gameplay mod, not a magic overhaul.
+**Version 0.1.3, beta.** A small standalone gameplay mod, not a magic overhaul.
 Ordinary failed player casts have a **15% chance** of a backfire by default.
 There is **no cooldown**; every detected failure gets its own roll.
 
@@ -16,6 +16,14 @@ to always use the attempted school. The first toggle off disables all such XP.
 
 ## Requirements
 
+**Wild Intervention On Teleport Miscasts** defaults to on. A failed ordinary
+spell containing Recall, Divine Intervention, or Almsivi Intervention that rolls
+a backfire triggers Wild Intervention. If Nifty's `NiftySpellPack.omwaddon`
+and spell record are available, its spell is used; otherwise Arcane Misfires
+provides an independently implemented equivalent. Unchecking the toggle restores
+the usual backlash. The chance setting still applies; the severity cap does not
+scale Wild Intervention. No Nifty files are bundled or required.
+
 - Morrowind and a compatible OpenMW build. Tested on OpenMW **0.52 development**, revision `73765c58a2`; older releases are not certified.
 - OpenMW's sound system must be enabled. Muting the volume is fine; `--no-sound` prevents failed-cast detection.
 - No MWSE, Magicka Expanded, custom textures, models, or other mods required. Classic Morrowind is not supported.
@@ -26,7 +34,7 @@ before adding the beta to an important playthrough.
 
 ## Installation
 
-Download **Arcane-Misfires-0.1.2.zip** from the repository's Releases page, or Nexus.
+Download **Arcane-Misfires-0.1.3.zip** from the repository's Releases page, or Nexus.
 GitHub's automatically generated source archives are not installable mod packages.
 
 1. Extract the mod ZIP into its own directory. `ArcaneMisfires.esp`, `ArcaneMisfires.omwscripts`, `scripts`, and `l10n` should be directly inside it.
@@ -65,6 +73,7 @@ sounds and visual effects accompany the temporary penalty.
 | Night Eye, Light, concealment; other Illusion | Afterimage: Blind | 10 / 20 / 35 | 8 / 12 / 16 |
 | Conjuration | Severed Invocation: Silence | On / on / on | 6 / 9 / 12 |
 | Magicka effects; other Mysticism | Hollow Reservoir: Drain Magicka | 5 / 10 / 20 | 8 / 12 / 16 |
+| Recall, Divine Intervention, Almsivi Intervention with toggle on | Wild Intervention | Destination and fatigue rules below | Immediate |
 | Shield, Spell Absorption, Reflect | Fractured Ward: Weakness to Magicka | 10 / 20 / 30% | 10 / 15 / 20 |
 | Other Destruction and Restoration | Arcane Exhaustion: Damage Fatigue | 5 / 10 / 15 per second | 2 / 3 / 4 |
 
@@ -97,6 +106,23 @@ school fallback. No backfire spells are added to your learned-spell list.
 
 Powers, scrolls, enchanted items, successful casts, insufficient-magicka attempts,
 and interrupted casts that never release are excluded. NPCs are unaffected.
+
+### Wild Intervention
+
+The standalone implementation follows Nifty Spell Pack 1.0.0's rules. It uses the
+current exterior, or the nearest exterior connected through up to ten load doors.
+It samples up to twenty distinct exterior cells at grid distance 2-6, requires a
+region, and tries up to sixteen random positions per cell for ground at or above
+the water level. It fails without moving the player if no destination is found
+or teleportation is disabled.
+
+There is a 20% chance to divert through a randomly chosen unlocked, unscripted
+load door at the destination, with a further 20% chance to reverse the arrival
+orientation. Exterior arrivals sample an 81-ray, 1000-unit square for the lowest
+dry collision surface, using the lowest wet surface only if no dry hit exists.
+There is a 5% chance to arrive 250-1000 units above that surface. Successful
+arrivals set fatigue to a random integer from -15 to 5, except in god mode.
+This can knock the player down, and airborne arrivals can cause falling damage.
 
 ## Saves, Updates, And Removal
 
@@ -137,6 +163,10 @@ enabled in a real save. See [Testing](TESTING-ARCANE-MISFIRES.md) and the
 [Changelog](CHANGELOG.md) supplies the release notes for both services.
 
 ## Credits And License
+
+Wild Intervention's rule set is based on
+[Nifty Spell Pack](https://www.nexusmods.com/morrowind/mods/58691). Its actual spell
+is preferred when available; the standalone implementation uses original code.
 
 Inspired by the failed-cast backlash idea in
 [Miscast Enhanced by OperatorJack](https://www.nexusmods.com/morrowind/mods/47948).

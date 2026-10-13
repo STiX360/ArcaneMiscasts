@@ -39,6 +39,23 @@ Drain Magicka, or Weakness to Magicka. Spell record cost selects tier 1 below 15
 tier 2 at 15-39, and tier 3 at 40+, limited by the severity setting. Stats affect
 normal casting success, not the backfire roll after a detected failure.
 
+Wild Intervention On Teleport Miscasts defaults to on. When Nifty Spell Pack's
+NiftySpellPack.omwaddon and spell are available, teleport miscasts use its Wild
+Intervention. Otherwise an independently implemented built-in equivalent is
+used. Turning the toggle off restores the usual backlash. Chance still applies;
+the severity cap does not scale Wild Intervention. No Nifty files are required.
+
+The built-in version follows Nifty 1.0.0's rules: find the current or connected
+exterior (up to ten load doors), sample up to twenty cells at grid distance 2-6,
+and try sixteen dry terrain positions per cell. Regionless cells are excluded.
+It has a 20% chance of arriving through an unlocked, unscripted load door, and
+a further 20% chance of reversed orientation. Exterior arrivals use a 9x9 ray
+grid across 1000 units to find the lowest dry collision surface (lowest wet hit
+if none are dry), with a 5% chance of arriving 250-1000 units above it. Fatigue
+becomes a random integer from -15 to 5 unless in god mode. Teleport-disabled
+areas and destinations that cannot be resolved cause the intervention to fail.
+Knockdown and falling damage are possible.
+
 Silence lasts 6/9/12 seconds and prevents successful ordinary spells, not attempts
 or animations. Blind affects accuracy, not brightness. Normal resistance applies;
 backfires cannot be reflected or absorbed. Same outcome/tier magnitudes do not
@@ -62,6 +79,10 @@ Before removal, disable backfires, wait at least 25 unpaused seconds, save, then
 disable both content files. Keep a backup save. Do not remove active spell records.
 
 ## Credits
+
+Wild Intervention rule set and optional original spell: Nifty Spell Pack
+https://www.nexusmods.com/morrowind/mods/58691
+The built-in equivalent is independently implemented.
 
 Inspired by Miscast Enhanced by OperatorJack:
 https://www.nexusmods.com/morrowind/mods/47948

@@ -6,10 +6,12 @@ local ui = require('openmw.ui')
 local animation = require('openmw.animation')
 local I = require('openmw.interfaces')
 local policy = require('scripts.arcane_misfires.policy')
+local wildPlayer = require('scripts.arcane_misfires.wild_player')
 
 local group = 'SettingsPlayerArcaneMisfires'
 local defaults = {enabled=true, chance=15, severity=3, messages=true,
-    failedCastExperience=true, experienceOnlyMisfires=true, useMisfireSchool=true}
+    failedCastExperience=true, experienceOnlyMisfires=true, useMisfireSchool=true,
+    niftyWildIntervention=true}
 I.Settings.registerPage {key='ArcaneMisfires', l10n='ArcaneMisfires', name='PageName'}
 I.Settings.registerGroup {
     key=group, page='ArcaneMisfires', l10n='ArcaneMisfires', name='Backfires',
@@ -19,6 +21,8 @@ I.Settings.registerGroup {
         {key='chance', renderer='number', name='Chance', default=15, argument={min=0,max=100}},
         {key='severity', renderer='number', name='Severity', default=3, argument={min=1,max=3}},
         {key='messages', renderer='checkbox', name='Messages', default=true},
+        {key='niftyWildIntervention', renderer='checkbox', name='NiftyWildIntervention',
+            description='NiftyWildInterventionDescription', default=true},
         {key='failedCastExperience', renderer='checkbox', name='FailedCastExperience',
             description='FailedCastExperienceDescription', default=true},
         {key='experienceOnlyMisfires', renderer='checkbox', name='ExperienceOnlyMisfires',
@@ -58,6 +62,15 @@ local function selected()
     if types.Actor.getSelectedEnchantedItem(self) then return end
     local spell = types.Actor.getSelectedSpell(self)
     if spell and spell.type == core.magic.SPELL_TYPE.Spell then return spell end
+end
+local teleportEffects = {recall=true, divineintervention=true, almsiviintervention=true}
+local function wildIntervention(spell)
+    if settings:get('niftyWildIntervention') == false then return false end
+    for _, effect in ipairs(spell.effects) do
+        if teleportEffects[effect.id] then
+            return true
+        end
+    end
 end
 I.AnimationController.addPlayBlendedAnimationHandler(function(groupname, options)
     if groupname ~= 'spellcast' or options.skip or not initialised then return end
@@ -100,17 +113,29 @@ local function update(dt)
         gainExperience(school)
         return
     end
-    local outcome, tier = policy.choose(spell, school, number('severity', 1, 3))
-    if not outcome then gainExperience(school); return end
-    local id = 'amf_' .. outcome .. '_' .. tier
-    local record = core.magic.spells.records[id]
+    local wild = wildIntervention(spell)
+    local record = wild and core.contentFiles.has('NiftySpellPack.omwaddon')
+        and core.magic.spells.records['nsp_wildintervention'] or nil
+    local standalone = wild and not record
+    local id = 'nsp_wildintervention'
+    if standalone then
+        record = {name='Wild Intervention', effects={{id='divineintervention'}}}
+        core.sendGlobalEvent('AMF_WildIntervention', {target=self})
+    elseif not record then
+        local outcome, tier = policy.choose(spell, school, number('severity', 1, 3))
+        if not outcome then gainExperience(school); return end
+        id = 'amf_' .. outcome .. '_' .. tier
+        record = core.magic.spells.records[id]
+    end
     if not record then
         print('[Arcane Misfires] Missing '..id..'; enable ArcaneMisfires.esp.')
         gainExperience(school)
         return
     end
-    types.Actor.activeSpells(self):add {id=id, effects={0}, caster=self,
-        stackable=false, ignoreReflect=true, ignoreSpellAbsorption=true}
+    if not standalone then
+        types.Actor.activeSpells(self):add {id=id, effects={0}, caster=self,
+            stackable=false, ignoreReflect=true, ignoreSpellAbsorption=true}
+    end
     local effect = core.magic.effects.records[record.effects[1].id]
     gainExperience(school, effect.school)
     local staticId = effect.hitStatic
@@ -129,6 +154,7 @@ end
 return {
     interfaceName='ArcaneMisfires',
     interface={version=1, getBackfireCount=function() return count end},
+    eventHandlers={AMF_WildArrival=wildPlayer.arrive, AMF_WildFailure=wildPlayer.fail},
     engineHandlers={
         onUpdate=update,
         onLoad=function(data)
@@ -142,6 +168,7 @@ return {
                 failedCastExperience=settings:get('failedCastExperience') ~= false,
                 experienceOnlyMisfires=settings:get('experienceOnlyMisfires') ~= false,
                 useMisfireSchool=settings:get('useMisfireSchool') ~= false,
+                niftyWildIntervention=settings:get('niftyWildIntervention') ~= false,
                 severity=number('severity',1,3)}
             return {version=2, settings=values}
         end,

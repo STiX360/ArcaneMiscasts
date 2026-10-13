@@ -13,6 +13,7 @@ if not re.fullmatch(r'\d+\.\d+\.\d+', VERSION):
 PACKAGE_FILES = (
     'ArcaneMisfires.esp', 'ArcaneMisfires.omwscripts', 'README.md',
     'scripts/arcane_misfires/player.lua',
+    'scripts/arcane_misfires/wild_global.lua', 'scripts/arcane_misfires/wild_player.lua',
     'scripts/arcane_misfires/policy.lua', 'l10n/ArcaneMisfires/en.yaml',
 )
 
