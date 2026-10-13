@@ -29,9 +29,9 @@ notes in `CHANGELOG.md`. Commit the source, then push that commit and its matchi
 version tag. For the prepared version:
 
 ```powershell
-git tag v0.1.3
+git tag v0.1.4
 git push origin main
-git push origin v0.1.3
+git push origin v0.1.4
 ```
 
 Set your GitHub remote before using these commands. Substitute the branch name

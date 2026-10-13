@@ -1,9 +1,11 @@
 # Changelog
 
-## 0.1.3
+## 0.1.4
 
 - Added Wild Intervention On Teleport Miscasts, enabled by default. Recall, Divine Intervention, and Almsivi Intervention miscasts prefer Nifty Spell Pack's spell when available, otherwise use an independently implemented equivalent. Unchecking the toggle restores normal backlash; the usual chance roll still applies.
 - The built-in intervention matches Nifty 1.0.0's connected-exterior, dry-ground, door-detour, landing, airborne-arrival, fatigue, and teleport-permission rules without requiring or bundling Nifty files.
+
+## 0.1.3
 
 - Added Experience From Failed Casts, Experience Only On Misfires, and Use Misfire Effect's School to the Scripts settings page. All three default to on.
 - Misfires award normal successful-cast skill progress in the backlash effect's school by default. Settings can reward all detected failures or use the attempted spell's school instead.

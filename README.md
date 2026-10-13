@@ -2,7 +2,7 @@
 
 Failed spells can backfire with temporary, spell-themed penalties in OpenMW.
 
-**Version 0.1.3, beta.** A small standalone gameplay mod, not a magic overhaul.
+**Version 0.1.4, beta.** A small standalone gameplay mod, not a magic overhaul.
 Ordinary failed player casts have a **15% chance** of a backfire by default.
 There is **no cooldown**; every detected failure gets its own roll.
 
@@ -34,7 +34,7 @@ before adding the beta to an important playthrough.
 
 ## Installation
 
-Download **Arcane-Misfires-0.1.3.zip** from the repository's Releases page, or Nexus.
+Download **Arcane-Misfires-0.1.4.zip** from the repository's Releases page, or Nexus.
 GitHub's automatically generated source archives are not installable mod packages.
 
 1. Extract the mod ZIP into its own directory. `ArcaneMisfires.esp`, `ArcaneMisfires.omwscripts`, `scripts`, and `l10n` should be directly inside it.
