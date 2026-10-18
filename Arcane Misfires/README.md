@@ -1,7 +1,7 @@
 # Arcane Misfires
 
 Failed spells can backfire with temporary, spell-themed penalties in OpenMW.
-Version 1.0.0, stable. Requires compatible OpenMW 0.52 development APIs and Morrowind;
+Version 1.1.0, stable. Requires compatible OpenMW 0.52 development APIs and Morrowind;
 classic Morrowind/MWSE is not supported. No other mods or custom assets required.
 
 ## Install
@@ -47,6 +47,14 @@ check is stale, teleport normally and only unequip gear, keeping all items in
 inventory. Blocked teleports or unavailable destinations
 also leave items untouched. Immersion restricts the voice line to male High Elf
 (Altmer) characters. Both options persist with the player save.
+
+Always Critical Teleport Miscasts When Overencumbered is a separate option,
+off by default. When a miscast is triggered for Recall or either Intervention,
+current encumbrance above carrying capacity forces a critical, even with critical
+chance at 0%. The engine's current values include magic effects. The normal
+backfire chance and enable toggle still apply; successful casts are unaffected.
+With Wild Intervention disabled, this uses ordinary critical backlash instead.
+The option persists in saves; existing saves receive the disabled default.
 
 The Scripts settings page includes three experience toggles, all on by default:
 Experience From Failed Casts, Experience Only On Misfires, and Use Misfire

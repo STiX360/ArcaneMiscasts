@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.0
+
+- Added Always Critical Teleport Miscasts When Overencumbered, off by default. Triggered miscasts of spells containing Recall or either Intervention become critical when current encumbrance exceeds carrying capacity, even with critical chance at 0%. The normal backfire chance and enable toggle still apply. The setting persists in saves; existing saves default to off.
+- Forced criticals respect the existing Wild Intervention, Drop All Items and Immersion settings. With Wild Intervention disabled, they use ordinary critical backlash instead. Successful casts and nonteleport spells are unaffected.
+
 ## 1.0.0
 
 - First stable release, including configurable Critical Failures. By default, 1% of triggered miscasts are critical (0.15% of detected failed casts with the default 15% miscast chance). Set critical chance to 0% to disable them.

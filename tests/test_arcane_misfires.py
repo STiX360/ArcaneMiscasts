@@ -15,7 +15,7 @@ import build_arcane_misfires as builder
 MOD = builder.MOD
 MOCK = '''
 now=0; playing={}; values={}; applied={}; messages={}; audio=true; experience={}; events={}
-player={}; mana={current=100}; health={current=100}
+player={}; mana={current=100}; health={current=100}; encumbrance=100; capacity=200
 spell={id='test',type=0,cost=20,effects={{id='feather',duration=10,
     magnitudeMin=10,magnitudeMax=10,effect={school='alteration',baseCost=1}}}}
 selected=spell
@@ -34,6 +34,8 @@ core={getSimulationTime=function() return now end, stats={Skill={records={}}},
 for _,school in ipairs(schools) do core.stats.Skill.records[school]={school={failureSound=school}} end
 types={Static={records={}},Actor={getSelectedSpell=function() return selected end,
     getSelectedEnchantedItem=function() return enchanted end,
+    getEncumbrance=function(actor) assert(actor==player); return encumbrance end,
+    getCapacity=function(actor) assert(actor==player); return capacity end,
     stats={dynamic={health=function() return health end}},
     activeSpells=function() return {add=function(_,options) table.insert(applied,options) end} end}}
 settings={get=function(_,key) return values[key] end, set=function(_,key,value) values[key]=value end}
@@ -113,6 +115,62 @@ class ArcaneTests(unittest.TestCase):
             values.criticalChance=0/0; assert(mod.engineHandlers.onSave().settings.criticalChance==1)
             mod.engineHandlers.onLoad({version=2,settings={chance=100}}); tick(0.1)
             assert(values.criticalChance==1)''')
+
+    def test_overencumbered_teleport_setting_saves_and_defaults_off(self):
+        self.runlua('''assert(values.overencumberedTeleportCritical==false)
+            values.overencumberedTeleportCritical=true
+            mod.engineHandlers.onLoad(mod.engineHandlers.onSave()); tick(0.1)
+            assert(values.overencumberedTeleportCritical==true)
+            mod.engineHandlers.onLoad({version=2,settings={chance=100}}); tick(0.1)
+            assert(values.overencumberedTeleportCritical==false)''')
+
+    def test_overencumbered_teleports_force_critical_with_zero_critical_chance(self):
+        for effect_id in ('recall', 'divineintervention', 'almsiviintervention'):
+            with self.subTest(effect=effect_id):
+                self.setUp()
+                self.prepare_teleport(effect_id)
+                self.runlua('''values.overencumberedTeleportCritical=true; encumbrance=201
+                    failTeleport(); assert(#applied==0 and #events==1)
+                    assert(events[1].data.critical and messages[1]=='Critical Failure: Wild Intervention')''')
+
+    def test_overencumbered_teleport_toggle_and_capacity_boundary(self):
+        for enabled, weight in ((False, 201), (True, 199), (True, 200)):
+            with self.subTest(enabled=enabled, weight=weight):
+                self.setUp()
+                self.prepare_teleport('recall')
+                self.lua.globals()['values'].overencumberedTeleportCritical = enabled
+                self.lua.globals().encumbrance = weight
+                self.runlua("failTeleport(); assert(applied[1].id=='nsp_wildintervention' and #events==0)")
+
+    def test_overencumbered_teleport_keeps_enable_roll_and_success_guards(self):
+        for condition in ('values.enabled=false', 'values.chance=0',
+                "successHandler('mysticism',{useType=0})"):
+            with self.subTest(condition=condition):
+                self.setUp()
+                self.prepare_teleport('recall')
+                self.runlua('''values.overencumberedTeleportCritical=true; encumbrance=201
+                    start(); release(); '''+condition+'''; playing.mysticism=true; tick(0.1)
+                    assert(#events==0 and #applied==0)''')
+
+    def test_overencumbered_nonteleport_spells_are_not_forced_critical(self):
+        self.runlua('''values.overencumberedTeleportCritical=true; encumbrance=201
+            fail(); assert(applied[1].id=='amf_burden_2')''')
+
+    def test_overencumbered_teleport_with_wild_disabled_uses_critical_backlash(self):
+        self.prepare_teleport('recall')
+        self.runlua('''values.overencumberedTeleportCritical=true; encumbrance=201
+            values.niftyWildIntervention=false
+            failTeleport(); assert(applied[1].id=='amf_magicka_2_critical' and #events==0)''')
+
+    def test_overencumbered_multieffect_teleport_keeps_drop_and_immersion_options(self):
+        self.prepare_teleport('detectkey')
+        self.runlua('''values.overencumberedTeleportCritical=true; encumbrance=201
+            values.criticalTeleportDropItems=true; values.immersion=true
+            local wild=require('scripts.arcane_misfires.wild_player')
+            wild.dropPlan=function() return {cellId='origin',positions={}} end
+            table.insert(spell.effects,{id='recall',effect={school='mysticism',baseCost=1}})
+            failTeleport(); assert(events[1].data.critical and events[1].data.dropItems)
+            assert(events[1].data.immersion and events[1].data.dropPlan.cellId=='origin')''')
 
     def test_drop_and_immersion_settings_default_save_and_migrate(self):
         self.runlua('''assert(values.criticalTeleportDropItems==false and values.immersion==false)

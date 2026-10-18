@@ -12,6 +12,8 @@ WildInterventionFailed: Wild Intervention could not find a destination.
 CriticalTeleportDropItems: Critical Teleport Failure - Drop All Items
 CriticalTeleportDropItemsDescription: On a critical Wild Intervention, leave your entire inventory at the departure point before teleporting. Includes equipped gear, gold, keys and quest items. Items keep their stacks and are spread across checked nearby floor positions at one height. Large inventories may overlap horizontally. If no safe nearby floor is found, teleport normally and only unequip gear, keeping all items in inventory. Off by default; otherwise only equipped gear is unequipped.
 Immersion: Immersion
+OverencumberedTeleportCritical: Always Critical Teleport Miscasts When Overencumbered
+OverencumberedTeleportCriticalDescription: When a miscast is triggered for a spell containing Recall, Divine Intervention, or Almsivi Intervention, make it critical if your current encumbrance exceeds your carrying capacity. Overrides the critical chance, even at 0%, but keeps the normal backfire chance. Uses normal critical teleport rules when Wild Intervention is enabled, or critical backlash when disabled. Off by default.
 ImmersionDescription: Only play the critical teleportation voice line when your character is a male High Elf (Altmer). Off by default; otherwise it can play for any race or sex.
 FailedCastExperience: Experience From Failed Casts
 FailedCastExperienceDescription: Gain the same skill progress from a failed cast as from a successful cast.

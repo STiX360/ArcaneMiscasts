@@ -11,7 +11,8 @@ local wildPlayer = require('scripts.arcane_misfires.wild_player')
 local group = 'SettingsPlayerArcaneMisfires'
 local defaults = {enabled=true, chance=15, criticalChance=1, severity=3, messages=true,
     failedCastExperience=true, experienceOnlyMisfires=true, useMisfireSchool=true,
-    niftyWildIntervention=true, criticalTeleportDropItems=false, immersion=false}
+    niftyWildIntervention=true, criticalTeleportDropItems=false, immersion=false,
+    overencumberedTeleportCritical=false}
 I.Settings.registerPage {key='ArcaneMisfires', l10n='ArcaneMisfires', name='PageName'}
 I.Settings.registerGroup {
     key=group, page='ArcaneMisfires', l10n='ArcaneMisfires', name='Backfires',
@@ -27,6 +28,8 @@ I.Settings.registerGroup {
             description='NiftyWildInterventionDescription', default=true},
         {key='criticalTeleportDropItems', renderer='checkbox', name='CriticalTeleportDropItems',
             description='CriticalTeleportDropItemsDescription', default=false},
+        {key='overencumberedTeleportCritical', renderer='checkbox', name='OverencumberedTeleportCritical',
+            description='OverencumberedTeleportCriticalDescription', default=false},
         {key='immersion', renderer='checkbox', name='Immersion',
             description='ImmersionDescription', default=false},
         {key='failedCastExperience', renderer='checkbox', name='FailedCastExperience',
@@ -70,8 +73,7 @@ local function selected()
     if spell and spell.type == core.magic.SPELL_TYPE.Spell then return spell end
 end
 local teleportEffects = {recall=true, divineintervention=true, almsiviintervention=true}
-local function wildIntervention(spell)
-    if settings:get('niftyWildIntervention') == false then return false end
+local function teleportSpell(spell)
     for _, effect in ipairs(spell.effects) do
         if teleportEffects[effect.id] then
             return true
@@ -120,7 +122,12 @@ local function update(dt)
         return
     end
     local critical = math.random() * 100 < number('criticalChance', 0, 100)
-    local wild = wildIntervention(spell)
+    local teleport = teleportSpell(spell)
+    if teleport and settings:get('overencumberedTeleportCritical') == true
+        and types.Actor.getEncumbrance(self) > types.Actor.getCapacity(self) then
+        critical = true
+    end
+    local wild = teleport and settings:get('niftyWildIntervention') ~= false
     local record = wild and not critical and core.contentFiles.has('NiftySpellPack.omwaddon')
         and core.magic.spells.records['nsp_wildintervention'] or nil
     local standalone = wild and not record
@@ -184,6 +191,7 @@ return {
                 useMisfireSchool=settings:get('useMisfireSchool') ~= false,
                 niftyWildIntervention=settings:get('niftyWildIntervention') ~= false,
                 criticalTeleportDropItems=settings:get('criticalTeleportDropItems') == true,
+                overencumberedTeleportCritical=settings:get('overencumberedTeleportCritical') == true,
                 immersion=settings:get('immersion') == true,
                 severity=number('severity',1,3)}
             return {version=2, settings=values}

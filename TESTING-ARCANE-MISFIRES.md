@@ -45,6 +45,16 @@ Feather Backfire starts selected. Real saves and mod-manager profiles are unused
 8. Enable **Immersion** (it starts off). Male Altmer should hear the voice line;
    other race/sex combinations should not. With Immersion off, all characters
    can hear it. Save/reload should preserve both new options.
+9. Enable **Always Critical Teleport Miscasts When Overencumbered** and set
+   critical chance to 0%, keeping backfire chance at 100%. Carry more weight
+   than your capacity (or lower Strength until the inventory shows this), then
+   cast each teleport test spell. Expect a critical despite the 0% critical
+   chance, following the chosen drop-all and Immersion settings. At or below
+   carrying capacity, or with the new option off, expect an ordinary miscast.
+   Nonteleport spells must keep their normal critical chance. With backfire
+   chance at 0%, no miscast should occur even while overencumbered. Save/reload
+   should preserve the new option. Restore critical chance and character stats
+   after testing; F10 does not restore Strength.
 
 From the repository root, run a hidden, bounded native check of inventory removal, stack counts, and the
 common drop plane in Arrille's Tradehouse and exterior Seyda Neen:

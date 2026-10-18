@@ -2,7 +2,7 @@
 
 Failed spells can backfire with temporary, spell-themed penalties in OpenMW.
 
-**Version 1.0.0, stable.** A small standalone gameplay mod, not a magic overhaul.
+**Version 1.1.0, stable.** A small standalone gameplay mod, not a magic overhaul.
 Ordinary failed player casts have a **15% chance** of a backfire by default.
 There is **no cooldown**; every detected failure gets its own roll.
 
@@ -40,7 +40,7 @@ before adding the mod to an important playthrough.
 
 ## Installation
 
-Download **Arcane-Misfires-1.0.0.zip** from the repository's Releases page, or Nexus.
+Download **Arcane-Misfires-1.1.0.zip** from the repository's Releases page, or Nexus.
 GitHub's automatically generated source archives are not installable mod packages.
 
 1. Extract the mod ZIP into its own directory. `ArcaneMisfires.esp`, `ArcaneMisfires.omwscripts`, `scripts`, and `l10n` should be directly inside it.
@@ -124,7 +124,15 @@ Turning Wild Intervention off restores ordinary backlash, including its 10×
 critical magnitude. Critical chance can be set from 0% (disabled) to 100% and is
 saved per player; existing saves default to 1%.
 
-Two optional settings default to off, including for existing saves:
+An additional **Always Critical Teleport Miscasts When Overencumbered** setting
+defaults to off. When enabled, a triggered miscast of Recall or either
+Intervention becomes critical if current encumbrance exceeds carrying capacity,
+even with critical chance at 0%. This uses the engine's current weight and
+capacity, including magic effects. The normal miscast chance still applies;
+successful casts are unaffected. With Wild Intervention disabled, the forced
+critical uses ordinary 10× backlash instead. The option is saved per player.
+
+Two other optional settings default to off, including for existing saves:
 
 - **Critical Teleport Failure - Drop All Items** leaves the entire inventory at
   the departure point before a critical teleport: equipped gear, consumables,
