@@ -36,11 +36,12 @@ def build():
     spells = []
     for entry in entries:
         for index in range(3):
-            magnitude = entry['magnitude'][index]
-            spells.append(record('SPEL', text('NAME', f"amf_{entry['key']}_{index+1}"),
-                text('FNAM', entry['name']), sub('SPDT', struct.pack('<iii', 0, 0, 0)),
-                sub('ENAM', struct.pack('<hbbiiiii', entry['effect'], -1, -1, 0, 0,
-                    entry['duration'][index], magnitude, magnitude))))
+            for suffix, multiplier in (('', 1), ('_critical', 10)):
+                magnitude = entry['magnitude'][index] * multiplier
+                spells.append(record('SPEL', text('NAME', f"amf_{entry['key']}_{index+1}{suffix}"),
+                    text('FNAM', entry['name']), sub('SPDT', struct.pack('<iii', 0, 0, 0)),
+                    sub('ENAM', struct.pack('<hbbiiiii', entry['effect'], -1, -1, 0, 0,
+                        entry['duration'][index], magnitude, magnitude))))
     header = record('TES3', sub('HEDR', struct.pack('<fi32s256si', 1.3, 0,
         b'Arcane Misfires', b'Original temporary backfire effects for OpenMW.', len(spells))),
         text('MAST', 'Morrowind.esm'), sub('DATA', struct.pack('<Q', 0)))

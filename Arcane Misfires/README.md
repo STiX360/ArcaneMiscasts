@@ -1,7 +1,7 @@
 # Arcane Misfires
 
 Failed spells can backfire with temporary, spell-themed penalties in OpenMW.
-Beta release. Requires compatible OpenMW 0.52 development APIs and Morrowind;
+Version 1.0.0, stable. Requires compatible OpenMW 0.52 development APIs and Morrowind;
 classic Morrowind/MWSE is not supported. No other mods or custom assets required.
 
 ## Install
@@ -23,6 +23,30 @@ does not replace the real spell-record plugin.
 ## Gameplay
 
 Default chance: 15% per confirmed failed ordinary player spell, with no cooldown.
+
+Critical Failure chance defaults to 1% of triggered miscasts (0.15% of detected
+failed casts with default settings). Configure it from 0% to 100% in Scripts
+settings; existing saves receive 1%. Critical backlash has 10 times its normal
+magnitude at the chosen tier, with unchanged duration. Silence is an on/off
+effect, so a larger magnitude does not increase its practical effect.
+
+With Wild Intervention enabled, teleport criticals instead use the built-in
+Wild Intervention rules, even when Nifty is installed. Successful arrival
+unequips all gear and plays the original High Elf teleportation voice line.
+Items stay in the inventory. Blocked or failed teleports do neither. Turning
+Wild Intervention off restores ordinary backlash with 10 times magnitude on
+criticals. The voice uses Morrowind's own audio; no audio files are bundled.
+
+Two additional Scripts settings default to off. Critical Teleport Failure -
+Drop All Items moves the entire inventory, including gold, keys and quest items,
+to the departure floor before a critical teleport. Item stacks stay intact.
+Short floor and wall checks select nearby positions on one common plane;
+ground snapping is disabled, and large inventories can overlap horizontally
+instead of forming a vertical pile. If no safe nearby floor is found or the floor
+check is stale, teleport normally and only unequip gear, keeping all items in
+inventory. Blocked teleports or unavailable destinations
+also leave items untouched. Immersion restricts the voice line to male High Elf
+(Altmer) characters. Both options persist with the player save.
 
 The Scripts settings page includes three experience toggles, all on by default:
 Experience From Failed Casts, Experience Only On Misfires, and Use Misfire

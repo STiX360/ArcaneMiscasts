@@ -11,7 +11,7 @@ python tools/package_mod.py
 
 Tests run the actual Lua modules with Lua 5.1 through Lupa. `run_tests.py` builds
 the normal package first; fixture tests generate their own disposable content.
-Packaging generates 27 spell records from `Arcane Misfires/outcomes.json` and
+Packaging generates 54 spell records (27 ordinary and 27 critical variants) from `Arcane Misfires/outcomes.json` and
 creates `dist/Arcane-Misfires-<VERSION>.zip`. Generated ESPs and ZIPs are ignored
 by Git. The normal archive contains only the explicitly listed gameplay files.
 The build input `outcomes.json` is excluded from the installable archive.

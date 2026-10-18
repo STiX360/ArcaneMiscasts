@@ -1,5 +1,87 @@
 # Arcane Misfires: Quick In-Game Test
 
+## Critical Failure Test
+
+Double-click `Test-Critical-Failures.cmd` after closing other OpenMW sessions.
+This starts a fresh character in a separate `arcane-critical-manual` profile
+using OpenMW 0.52.0. Both backfire chance and critical chance are forced to 100%,
+severity is capped at one, and Wild Intervention is enabled. Sound stays enabled
+because failed-cast detection and the teleportation voice line require it.
+Fourteen `AM Test - ...` spells are supplied, including Recall and both
+Interventions. A shirt, trousers, shoes, ring and dagger are equipped for you.
+Feather Backfire starts selected. Real saves and mod-manager profiles are unused.
+
+1. Cast `AM Test - Feather Backfire`. Expect `Critical Failure: Leadbound Limbs`
+   and Burden **150 points for 6 seconds**. Press F8 to disable criticals, wait
+   for the effect to expire, then repeat: expect ordinary Burden **15 points for
+   6 seconds**. F8 restores 100% criticals. Compare other effects the same way;
+   tier-one Fire totals 20 damage when critical versus 2 normally. Silence is
+   on/off, so its increased record magnitude has no extra gameplay effect.
+2. Press F10 to refill resources and F7 to re-equip the kit. Select
+   `AM Test - Recall`, then cast. Expect a wild destination, an empty equipment
+   panel, all five test items still in inventory, and the original voice line
+   about teleportation, being alone and naked. A delayed PASS/FAIL message
+   checks equipment and inventory; confirm the voice by ear.
+3. Repeat with `AM Test - Divine Intervention` and `AM Test - Almsivi Intervention`.
+   Use F7 and F10 before each attempt; wait for knockdown recovery and the
+   previous failure sound to finish. Airborne arrivals and fatigue loss follow
+   existing Wild Intervention rules.
+4. Use F8 for 0% criticals, F7 to equip gear, and repeat a teleport. Expect ordinary
+   Wild Intervention with gear still equipped and no teleportation voice line.
+5. At 100% criticals, disable Wild Intervention in Scripts settings and cast
+   Recall. Expect critical Drain Magicka instead of teleportation, with gear
+   still equipped. Re-enable Wild Intervention afterward.
+6. Set critical chance to a fractional value in Scripts settings, save, reload,
+   and confirm it persists. The fixture does not reset settings on reload.
+7. Enable **Critical Teleport Failure - Drop All Items** in Scripts settings
+   (it starts off). With critical chance at 100%, cast a teleport spell from a
+   recognizable flat floor. Expect empty inventory and equipment after arrival.
+   Press **F6** to return to the departure point and verify gear and loose items are on the
+   same plane, including gold, consumable stacks, keys and quest items. Repeat
+   indoors, on an upper floor, and outdoors. Tight spaces and large inventories
+   can cause horizontal overlap; items must not form an upward pile. A missing
+   nearby floor must fall back to teleporting and unequipping with inventory
+   retained. Blocked teleports or missing destinations must leave items alone.
+8. Enable **Immersion** (it starts off). Male Altmer should hear the voice line;
+   other race/sex combinations should not. With Immersion off, all characters
+   can hear it. Save/reload should preserve both new options.
+
+From the repository root, run a hidden, bounded native check of inventory removal, stack counts, and the
+common drop plane in Arrille's Tradehouse and exterior Seyda Neen:
+
+```powershell
+python tools/verify_critical_inventory.py --engine-root 'C:/Modlists/POTI/.OpenMW' --game-data 'D:/Steam/steamapps/common/Morrowind/Data Files'
+```
+
+This invokes the actual Wild Intervention handler in disposable profiles; it
+does not cast a spell or establish long-session, modlist or save/reload safety.
+Sound stays enabled to exercise critical arrival handling; volume is muted.
+Evidence is written to `.runtime/critical-drop-interior/result.txt` and
+`.runtime/critical-drop-exterior/result.txt`. The manual fixture's drop-all
+arrival check verifies empty equipment/inventory; inspect the departure floor
+yourself for clipping with unusual item models.
+
+F6 returns you to the latest critical teleport's departure cell, exact position,
+and facing, without changing gear or inventory. The bookmark persists in test
+saves and is replaced by the next critical teleport. Before your first critical
+teleport, F6 displays a message instead. Inspect/pick up dropped items before
+using F7, which can create replacement test gear if you left the originals behind.
+F7 restores the five-item kit without duplicating existing inventory items; F8 switches
+critical chance between 0% and 100%. F9 empties magicka; F10 refills resources.
+These keys are ignored in menus. Logs are in
+`.runtime/arcane-critical-manual-profile/openmw.log`; saves stay under
+`.runtime/arcane-critical-manual-user-data`. Voice playback, blocked-teleport
+areas and Nifty-installed compatibility remain manual checks. The ordinary
+fixture's `-SmokeTest` does not establish critical gameplay correctness.
+
+To prepare this profile without starting the game:
+
+```powershell
+.\Test-Critical-Failures.cmd -PrepareOnly
+```
+
+## Ordinary Miscast Test
+
 Close other OpenMW instances, then double-click `Test-Arcane-Misfires.cmd`.
 No mod-manager installation or console setup is needed. The launcher uses the
 POTI-installed OpenMW 0.52 engine and Steam Morrowind plus both expansions, but
@@ -7,12 +89,13 @@ does not load or modify the POTI profile or real saves.
 
 You start outdoors in Seyda Neen with Fire selected and casting readied.
 OpenMW's normal spell-ready and cast controls still apply. The character has
-500 health, 2,000 magicka and eleven spells named `AM Test - ...` in the magic
+500 health, 2,000 magicka and fourteen spells named `AM Test - ...` in the magic
 menu. All six magic skills, Willpower and Luck are zero to make the ordinary
 200-cost test spells reliably fail. This deliberately unusual character is
 only for testing, not balance evaluation.
 
 Backfire chance starts at 100%, with no cooldown, and severity capped at one.
+Critical chance starts at 0% in this ordinary fixture for repeatable comparisons.
 Music is muted; spell sounds stay enabled. The game remains open for manual
 play. Every launcher run starts a fresh character; test saves can be reopened
 through the game's Load menu.

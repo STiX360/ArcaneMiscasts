@@ -10,7 +10,8 @@ def build():
         ('burden','Feather Backfire',8),('blind','Night Eye Backfire',43),
         ('silence','Conjuration Backfire',102),('magicka','Mysticism Backfire',57),
         ('weakness','Shield Backfire',3),('fatigue','Restoration Backfire',75),
-        ('success','Guaranteed Success',8),('power','Power Exclusion',8)]
+        ('success','Guaranteed Success',8),('power','Power Exclusion',8),
+        ('recall','Recall',61),('divine','Divine Intervention',62),('almsivi','Almsivi Intervention',63)]
     spells = []
     for key, name, effect in entries:
         control = key in ('success','power')
@@ -26,7 +27,8 @@ def build():
         for directory in (MOD,fixture):
             for path in sorted(directory.rglob('*')):
                 if path.is_file(): archive.write(path,path.relative_to(ROOT).as_posix())
-        for name in ('Test-Arcane-Misfires.cmd','TESTING-ARCANE-MISFIRES.md','tools/start-arcane-test.ps1'):
+        for name in ('Test-Arcane-Misfires.cmd','Test-Critical-Failures.cmd',
+                'TESTING-ARCANE-MISFIRES.md','tools/start-arcane-test.ps1'):
             archive.write(ROOT/name,name)
     print(output)
 

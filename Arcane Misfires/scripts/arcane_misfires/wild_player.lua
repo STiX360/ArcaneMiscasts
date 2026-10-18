@@ -6,9 +6,43 @@ local util = require('openmw.util')
 local debug = require('openmw.debug')
 local ui = require('openmw.ui')
 
+local function dropPlan()
+    if not self.cell then return end
+    local origin = self.position
+    local options = {radius=0, collisionType=nearby.COLLISION_TYPE.Default-nearby.COLLISION_TYPE.Actor}
+    local ground = nearby.castRay(origin + util.vector3(0, 0, 16),
+        origin + util.vector3(0, 0, -64), options)
+    if not ground or not ground.hit or not ground.hitPos then return end
+    local floor = ground.hitPos
+    local positions = {util.vector3(origin.x, origin.y, floor.z+1)}
+    local start = util.vector3(origin.x, origin.y, floor.z+16)
+    for x = -2, 2 do
+        for y = -2, 2 do
+            if x ~= 0 or y ~= 0 then
+                local point = util.vector3(origin.x+x*24, origin.y+y*24, floor.z+16)
+                local support = nearby.castRay(point, point + util.vector3(0, 0, -32), options)
+                local wall = nearby.castRay(start, point, options)
+                if support and support.hit and support.hitPos and math.abs(support.hitPos.z-floor.z) < 0.5
+                    and not (wall and wall.hit) then
+                    positions[#positions+1] = util.vector3(point.x, point.y, floor.z+1)
+                end
+            end
+        end
+    end
+    return {cellId=self.cell.id, origin=origin, positions=positions}
+end
+
 local function arrive(data)
     if not self.cell or self.cell.id ~= data.cellId
         or types.Actor.stats.dynamic.health(self).current <= 0 then return end
+    if data.critical then
+        types.Actor.setEquipment(self, {})
+        local npc = data.immersion and types.NPC.record(self) or nil
+        local voiceAllowed = not data.immersion or (npc and npc.isMale and npc.race == 'high elf')
+        if core.sound.isEnabled() and voiceAllowed then
+            core.sound.say('sound/vo/h/m/idl_hm001.mp3', self)
+        end
+    end
     if not debug.isGodMode() then
         types.Actor.stats.dynamic.fatigue(self).current = math.random(-15, 5)
     end
@@ -37,6 +71,7 @@ local function arrive(data)
 end
 
 return {
+    dropPlan=dropPlan,
     arrive=arrive,
     fail=function(data)
         ui.showMessage(data.disabled and core.getGMST('sTeleportDisabled')

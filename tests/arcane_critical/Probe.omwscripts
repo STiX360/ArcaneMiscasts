@@ -1,0 +1,2 @@
+GLOBAL: scripts/arcane_critical/global.lua
+PLAYER: scripts/arcane_critical/player.lua

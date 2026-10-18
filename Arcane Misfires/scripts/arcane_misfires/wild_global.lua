@@ -83,6 +83,14 @@ local function livePlayer(target)
         and types.Actor.stats.dynamic.health(target).current > 0
 end
 
+local function validDropPlan(target, plan)
+    if not plan or not target.cell or plan.cellId ~= target.cell.id
+        or not plan.origin or not plan.positions or #plan.positions == 0 then return false end
+    local position = target.position
+    return (position.x-plan.origin.x)^2 + (position.y-plan.origin.y)^2
+        + (position.z-plan.origin.z)^2 <= 32^2
+end
+
 return {
     eventHandlers = {
         AMF_WildIntervention = function(data)
@@ -97,8 +105,22 @@ return {
                 target:sendEvent('AMF_WildFailure', {})
                 return
             end
+            local dropItems = data.critical == true and data.dropItems == true
+                and validDropPlan(target, data.dropPlan)
+            if dropItems then
+                local items = {}
+                for _, item in ipairs(types.Actor.inventory(target):getAll()) do
+                    items[#items+1] = item
+                end
+                local positions = data.dropPlan.positions
+                local origin = target.cell
+                for index, item in ipairs(items) do
+                    item:teleport(origin, positions[(index-1) % #positions+1], {onGround=false})
+                end
+            end
             target:teleport(cell, position, {onGround=true, rotation=rotation})
-            target:sendEvent('AMF_WildArrival', {cellId=cell.id})
+            target:sendEvent('AMF_WildArrival', {cellId=cell.id, critical=data.critical == true,
+                droppedItems=dropItems, immersion=data.immersion == true})
         end,
         AMF_WildLanding = function(data)
             local target = data.target

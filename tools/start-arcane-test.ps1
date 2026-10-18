@@ -2,11 +2,13 @@ param(
     [string]$Engine = 'C:\Modlists\POTI\.OpenMW\openmw.exe',
     [string]$GameData = 'D:\Steam\steamapps\common\Morrowind\Data Files',
     [switch]$PrepareOnly,
-    [switch]$SmokeTest
+    [switch]$SmokeTest,
+    [switch]$CriticalFailures
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-$name = if ($SmokeTest) { 'arcane-misfires-smoke' } else { 'arcane-misfires-manual' }
+$name = if ($SmokeTest) { 'arcane-misfires-smoke' } elseif ($CriticalFailures) { 'arcane-critical-manual' } else { 'arcane-misfires-manual' }
+if ($SmokeTest -and $CriticalFailures) { throw 'Use -SmokeTest for the ordinary fixture, or -CriticalFailures for the interactive critical test.' }
 $profile = Join-Path $root ".runtime\$name-profile"
 $userData = Join-Path $root ".runtime\$name-user-data"
 $mod = Join-Path $root 'Arcane Misfires'
@@ -25,6 +27,7 @@ foreach ($path in @((Join-Path $mod 'ArcaneMisfires.esp'), (Join-Path $mod 'Arca
 $localData = Join-Path $userData 'data'
 New-Item -ItemType Directory -Force -Path $profile,$userData,$localData | Out-Null
 $smokeContent = if ($SmokeTest) { 'content=ArcaneMisfiresTestSmoke.omwscripts' } else { '' }
+$criticalContent = if ($CriticalFailures) { 'content=ArcaneMisfiresCriticalTest.omwscripts' } else { '' }
 $config = @"
 replace=config
 replace=data
@@ -45,6 +48,7 @@ content=ArcaneMisfiresTest.esp
 content=ArcaneMisfires.omwscripts
 content=ArcaneMisfiresTest.omwscripts
 $smokeContent
+$criticalContent
 fallback-archive=Morrowind.bsa
 fallback-archive=Tribunal.bsa
 fallback-archive=Bloodmoon.bsa
@@ -70,6 +74,7 @@ $arguments = @('--replace','config','--config',('"'+$profile+'"'),
 Write-Host "OpenMW $version; isolated profile: $profile"
 Write-Host "Test saves: $userData"
 if ($PrepareOnly) { return }
+if (Get-Process -Name openmw -ErrorAction SilentlyContinue) { throw 'Close the existing OpenMW session before launching this isolated test.' }
 if ($SmokeTest) {
     $process = Start-Process -FilePath $Engine -ArgumentList $arguments -WorkingDirectory (Split-Path -Parent $Engine) -WindowStyle Hidden -PassThru
     if (-not $process.WaitForExit(60000)) {

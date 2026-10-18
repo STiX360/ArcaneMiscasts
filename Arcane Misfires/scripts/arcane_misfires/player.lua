@@ -9,9 +9,9 @@ local policy = require('scripts.arcane_misfires.policy')
 local wildPlayer = require('scripts.arcane_misfires.wild_player')
 
 local group = 'SettingsPlayerArcaneMisfires'
-local defaults = {enabled=true, chance=15, severity=3, messages=true,
+local defaults = {enabled=true, chance=15, criticalChance=1, severity=3, messages=true,
     failedCastExperience=true, experienceOnlyMisfires=true, useMisfireSchool=true,
-    niftyWildIntervention=true}
+    niftyWildIntervention=true, criticalTeleportDropItems=false, immersion=false}
 I.Settings.registerPage {key='ArcaneMisfires', l10n='ArcaneMisfires', name='PageName'}
 I.Settings.registerGroup {
     key=group, page='ArcaneMisfires', l10n='ArcaneMisfires', name='Backfires',
@@ -19,10 +19,16 @@ I.Settings.registerGroup {
     settings={
         {key='enabled', renderer='checkbox', name='Enabled', default=true},
         {key='chance', renderer='number', name='Chance', default=15, argument={min=0,max=100}},
+        {key='criticalChance', renderer='number', name='CriticalChance',
+            description='CriticalChanceDescription', default=1, argument={min=0,max=100}},
         {key='severity', renderer='number', name='Severity', default=3, argument={min=1,max=3}},
         {key='messages', renderer='checkbox', name='Messages', default=true},
         {key='niftyWildIntervention', renderer='checkbox', name='NiftyWildIntervention',
             description='NiftyWildInterventionDescription', default=true},
+        {key='criticalTeleportDropItems', renderer='checkbox', name='CriticalTeleportDropItems',
+            description='CriticalTeleportDropItemsDescription', default=false},
+        {key='immersion', renderer='checkbox', name='Immersion',
+            description='ImmersionDescription', default=false},
         {key='failedCastExperience', renderer='checkbox', name='FailedCastExperience',
             description='FailedCastExperienceDescription', default=true},
         {key='experienceOnlyMisfires', renderer='checkbox', name='ExperienceOnlyMisfires',
@@ -113,18 +119,23 @@ local function update(dt)
         gainExperience(school)
         return
     end
+    local critical = math.random() * 100 < number('criticalChance', 0, 100)
     local wild = wildIntervention(spell)
-    local record = wild and core.contentFiles.has('NiftySpellPack.omwaddon')
+    local record = wild and not critical and core.contentFiles.has('NiftySpellPack.omwaddon')
         and core.magic.spells.records['nsp_wildintervention'] or nil
     local standalone = wild and not record
     local id = 'nsp_wildintervention'
     if standalone then
         record = {name='Wild Intervention', effects={{id='divineintervention'}}}
-        core.sendGlobalEvent('AMF_WildIntervention', {target=self})
+        local dropItems = critical and settings:get('criticalTeleportDropItems') == true
+        core.sendGlobalEvent('AMF_WildIntervention', {target=self, critical=critical,
+            dropItems=dropItems, dropPlan=dropItems and wildPlayer.dropPlan() or nil,
+            immersion=settings:get('immersion') == true})
     elseif not record then
         local outcome, tier = policy.choose(spell, school, number('severity', 1, 3))
         if not outcome then gainExperience(school); return end
         id = 'amf_' .. outcome .. '_' .. tier
+        if critical then id = id .. '_critical' end
         record = core.magic.spells.records[id]
     end
     if not record then
@@ -147,7 +158,9 @@ local function update(dt)
     end
     local hitSound = effect.hitSound or core.stats.Skill.records[school].school.hitSound
     if type(hitSound) == 'string' and hitSound ~= '' then core.sound.playSound3d(hitSound, self) end
-    if settings:get('messages') ~= false then ui.showMessage('Miscast: '..record.name) end
+    if settings:get('messages') ~= false then
+        ui.showMessage((critical and 'Critical Failure: ' or 'Miscast: ')..record.name)
+    end
     count = count + 1
 end
 
@@ -165,10 +178,13 @@ return {
             if not initialised then return saved end
             local values = {enabled=settings:get('enabled') ~= false,
                 messages=settings:get('messages') ~= false, chance=number('chance',0,100),
+                criticalChance=number('criticalChance',0,100),
                 failedCastExperience=settings:get('failedCastExperience') ~= false,
                 experienceOnlyMisfires=settings:get('experienceOnlyMisfires') ~= false,
                 useMisfireSchool=settings:get('useMisfireSchool') ~= false,
                 niftyWildIntervention=settings:get('niftyWildIntervention') ~= false,
+                criticalTeleportDropItems=settings:get('criticalTeleportDropItems') == true,
+                immersion=settings:get('immersion') == true,
                 severity=number('severity',1,3)}
             return {version=2, settings=values}
         end,

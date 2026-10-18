@@ -13,7 +13,17 @@ local rotationMt={__mul=function(a,b) return rotate(a.angle+b.angle) end}
 function rotate(angle) return setmetatable({angle=angle},rotationMt) end
 util={vector3=vector,transform={rotateZ=rotate}}
 math.random=function(a,b) if a then return b and a or 1 end return real or 0.5 end
-events={}; moves={}; candidates={}; landCalls=0; rays=0; messages={}
+events={}; moves={}; candidates={}; landCalls=0; rays=0; messages={}; items={}; dropped={}
+race='high elf'; male=true
+function item(id,count)
+    local object={id=id,count=count,condition=37,charge=19,owner='owner'}
+    object.teleport=function(object,c,pos,options)
+        table.insert(dropped,{object=object,cell=c,position=pos,options=options})
+        for index,entry in ipairs(items) do if entry==object then table.remove(items,index); break end end
+    end
+    table.insert(items,object)
+    return object
+end
 function cell(id,exterior,gridX,gridY)
     return {id=id,isExterior=exterior,gridX=gridX or 0,gridY=gridY or 0,
         region='region',worldSpaceId='sys::default',waterLevel=0,doors={},
@@ -26,16 +36,22 @@ player={cell=origin,position=vector(0,0,0),rotation=rotate(0),
     isValid=function() return not invalid end,
     sendEvent=function(_,name,data) table.insert(events,{name=name,data=data}) end,
     teleport=function(p,c,pos,options)
+        if expectDropCount then assert(#dropped==expectDropCount, 'player moved before inventory dropped') end
         table.insert(moves,{cell=c,position=pos,options=options}); p.cell=c; p.position=pos
     end}
 types={Player={objectIsInstance=function() return not npc end,
     isTeleportingEnabled=function() return enabled end},
-    Actor={stats={dynamic={health=function() return health end,fatigue=function() return fatigue end}}},
+    NPC={record=function() return {race=race,isMale=male} end},
+    Actor={inventory=function() return {getAll=function() return items end} end,
+        setEquipment=function(actor,items) assert(actor==player); equipment=items end,
+        stats={dynamic={health=function() return health end,fatigue=function() return fatigue end}}},
     Door={isTeleport=function(d) return d.teleport~=false end,
         destCell=function(d) return d.cell end, destPosition=function(d) return d.position end,
         destRotation=function(d) return d.rotation end, record=function(d) return {mwscript=d.script} end},
     Lockable={isLocked=function(d) return d.locked end}}
-core={land={getHeightAt=function(pos,c)
+core={sound={isEnabled=function() return audio~=false end,
+        say=function(path,actor) voice={path=path,actor=actor} end},
+    land={getHeightAt=function(pos,c)
         landCalls=landCalls+1; landPosition=pos; return height or 10
     end},
     sendGlobalEvent=function(name,data) table.insert(events,{name=name,data=data}) end,
@@ -46,7 +62,7 @@ world={getExteriorCell=function(x,y,c)
 end}
 nearby={COLLISION_TYPE={Default=15,Actor=4},castRay=function(a,b,options)
     rays=rays+1; lastRay={a=a,b=b,options=options}
-    return rayHits and rayHits[rays] and {hitPos=rayHits[rays]} or nil
+    return rayHits and rayHits[rays] and {hit=true,hitPos=rayHits[rays]} or nil
 end}
 package.preload['openmw.core']=function() return core end
 package.preload['openmw.types']=function() return types end
@@ -70,6 +86,127 @@ class WildTests(unittest.TestCase):
 
     def runlua(self, code):
         self.lua.execute(code)
+
+    def test_critical_arrival_unequips_and_plays_original_voice(self):
+        self.runlua('''global.eventHandlers.AMF_WildIntervention({target=player,critical=true})
+            assert(events[1].data.critical and equipment==nil and voice==nil)
+            localPlayer.arrive(events[1].data)
+            assert(next(equipment)==nil)
+            assert(voice.path=='sound/vo/h/m/idl_hm001.mp3' and voice.actor==player)''')
+
+    def test_normal_arrival_leaves_equipment_and_voice_alone(self):
+        self.runlua('intervene(); localPlayer.arrive(events[1].data); assert(equipment==nil and voice==nil)')
+
+    def test_immersion_voice_race_and_sex_matrix(self):
+        for race in ('high elf', 'dark elf', 'breton', 'custom altmer'):
+            for male in (True, False):
+                for immersion in (True, False):
+                    with self.subTest(race=race, male=male, immersion=immersion):
+                        self.setUp()
+                        self.lua.globals().race = race
+                        self.lua.globals().male = male
+                        self.lua.globals().immersion = immersion
+                        self.runlua('localPlayer.arrive({cellId=origin.id,critical=true,immersion=immersion})')
+                        self.assertEqual(self.lua.globals().voice is not None,
+                            not immersion or (race == 'high elf' and male))
+
+    def test_drop_moves_all_original_stacks_before_player(self):
+        self.runlua('''local gold=item('gold',10000); local quest=item('quest',1); item('sword',1)
+            expectDropCount=3
+            local plan={cellId=origin.id,origin=player.position,
+                positions={vector(0,0,1),vector(24,0,1)}}
+            global.eventHandlers.AMF_WildIntervention({target=player,critical=true,
+                dropItems=true,dropPlan=plan,immersion=true})
+            assert(#items==0 and #dropped==3 and #moves==1)
+            for _,entry in ipairs(dropped) do
+                assert(entry.cell==origin and entry.position.z==1 and entry.options.onGround==false)
+            end
+            assert(dropped[1].object==gold and gold.count==10000)
+            assert(dropped[2].object==quest and quest.condition==37 and quest.charge==19 and quest.owner=='owner')
+            assert(events[1].data.droppedItems and events[1].data.immersion)''')
+
+    def test_drop_disabled_or_noncritical_leaves_inventory_alone(self):
+        for critical, drop in ((True, False), (False, True), (False, False)):
+            with self.subTest(critical=critical, drop=drop):
+                self.setUp()
+                self.lua.globals().critical = critical
+                self.lua.globals().drop = drop
+                self.runlua('''item('sword',1)
+                    global.eventHandlers.AMF_WildIntervention({target=player,critical=critical,dropItems=drop})
+                    assert(#items==1 and #dropped==0 and #moves==1 and not events[1].data.droppedItems)''')
+
+    def test_drop_blocked_or_missing_destination_leaves_items(self):
+        for condition in ('enabled=false', 'height=-1'):
+            with self.subTest(condition=condition):
+                self.setUp()
+                self.runlua('''item('quest',1)
+                    plan={cellId=origin.id,origin=player.position,positions={vector(0,0,1)}}
+                    '''+condition+'''
+                    global.eventHandlers.AMF_WildIntervention({target=player,critical=true,dropItems=true,dropPlan=plan})
+                    assert(#items==1 and #dropped==0 and #moves==0 and events[1].name=='AMF_WildFailure')''')
+
+    def test_unsafe_drop_plan_falls_back_to_teleport_and_unequip(self):
+        for condition in ('plan=nil', "plan.cellId='old'",
+                'plan.origin=vector(100,0,0)', 'plan.positions={}'):
+            with self.subTest(condition=condition):
+                self.setUp()
+                self.runlua('''local quest=item('quest',1); equipment={quest}
+                    plan={cellId=origin.id,origin=player.position,positions={vector(0,0,1)}}
+                    '''+condition+'''
+                    global.eventHandlers.AMF_WildIntervention({target=player,critical=true,
+                        dropItems=true,dropPlan=plan,immersion=true})
+                    assert(#items==1 and items[1]==quest and #dropped==0 and #moves==1)
+                    assert(events[1].name=='AMF_WildArrival' and events[1].data.critical)
+                    assert(not events[1].data.droppedItems and events[1].data.immersion)
+                    localPlayer.arrive(events[1].data)
+                    assert(next(equipment)==nil and #items==1 and voice~=nil)''')
+
+    def test_drop_plan_uses_short_rays_and_common_height(self):
+        self.runlua('''nearby.castRay=function(a,b,options)
+                assert(options.collisionType==11)
+                if a.z==b.z then return {hit=false} end
+                assert(a.z-b.z<=80)
+                return {hit=true,hitPos=vector(a.x,a.y,0)}
+            end
+            local plan=localPlayer.dropPlan()
+            assert(plan.cellId==origin.id and #plan.positions==25)
+            local seen={}
+            for _,point in ipairs(plan.positions) do
+                assert(point.z==1 and math.abs(point.x)<=48 and math.abs(point.y)<=48)
+                local key=point.x..':'..point.y; assert(not seen[key]); seen[key]=true
+            end''')
+
+    def test_drop_plan_rejects_roof_heights_walls_and_no_ground(self):
+        self.runlua('''local calls=0
+            nearby.castRay=function(a,b)
+                calls=calls+1
+                if calls==1 then return {hit=true,hitPos=vector(0,0,0)} end
+                if a.z==b.z then return {hit=true} end
+                return {hit=true,hitPos=vector(a.x,a.y,50)}
+            end
+            assert(#localPlayer.dropPlan().positions==1)
+            nearby.castRay=function() return {hit=false,hitPos=vector(0,0,0)} end
+            assert(localPlayer.dropPlan()==nil)''')
+
+    def test_critical_rejected_teleport_does_not_unequip_or_speak(self):
+        for condition in ('enabled=false', 'height=-1'):
+            with self.subTest(condition=condition):
+                self.setUp()
+                self.runlua(condition+'''; global.eventHandlers.AMF_WildIntervention({target=player,critical=true})
+                    assert(#moves==0 and events[1].name=='AMF_WildFailure')
+                    assert(equipment==nil and voice==nil)''')
+
+    def test_critical_stale_or_dead_arrival_does_not_unequip(self):
+        for condition in ("player.cell=cell('other',true)", 'health.current=0'):
+            with self.subTest(condition=condition):
+                self.setUp()
+                self.runlua(condition+'''; localPlayer.arrive({cellId='origin',critical=true})
+                    assert(equipment==nil and voice==nil)''')
+
+    def test_critical_interior_and_muted_arrival(self):
+        self.runlua('''audio=false; player.cell=cell('inside',false)
+            localPlayer.arrive({cellId='inside',critical=true})
+            assert(next(equipment)==nil and voice==nil and fatigue.current==-15)''')
 
     def test_exterior_distance_dry_ground_and_arrival_dispatch(self):
         self.runlua('''intervene(); assert(#moves==1 and #candidates==1)

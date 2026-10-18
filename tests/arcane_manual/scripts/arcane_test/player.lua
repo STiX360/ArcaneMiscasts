@@ -7,7 +7,8 @@ local ui = require('openmw.ui')
 local I = require('openmw.interfaces')
 local settings = storage.playerSection('SettingsPlayerArcaneMisfires')
 local schools = {'alteration','conjuration','destruction','illusion','mysticism','restoration'}
-local spells = {'fire','frost','shock','burden','blind','silence','magicka','weakness','fatigue','success','power'}
+local spells = {'fire','frost','shock','burden','blind','silence','magicka','weakness','fatigue','success','power',
+    'recall','divine','almsivi'}
 local prepared, elapsed, readyAt = false, 0, nil
 
 I.SkillProgression.addSkillUsedHandler(function(skill, options)
@@ -40,6 +41,7 @@ local function update(dt)
         refill()
         for _, id in ipairs(spells) do types.Actor.spells(self):add('amft_'..id) end
         settings:set('enabled',true); settings:set('chance',100)
+        settings:set('criticalChance',0)
         settings:set('severity',1); settings:set('messages',true)
         settings:set('failedCastExperience',true)
         settings:set('experienceOnlyMisfires',true)

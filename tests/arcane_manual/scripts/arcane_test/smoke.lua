@@ -43,6 +43,10 @@ end, onUpdate=function(dt)
                 assert(outcome==id and tier==1, 'wrong backfire route: '..id)
             end
         end
+        for _, id in ipairs({'recall','divine','almsivi'}) do
+            assert(types.Actor.spells(self)['amft_'..id], 'teleport test spell missing: '..id)
+        end
+        assert(settings:get('criticalChance')==0, 'ordinary fixture must disable criticals')
         assert(types.Actor.getSelectedSpell(self).id=='amft_fire', 'Fire not selected')
         assert(types.Actor.getStance(self)==types.Actor.STANCE.Spell, 'casting stance not ready')
         assert(types.Actor.stats.dynamic.magicka(self).current==2000, 'magicka not refilled')

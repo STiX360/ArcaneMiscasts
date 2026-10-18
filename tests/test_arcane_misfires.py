@@ -69,13 +69,67 @@ class ArcaneTests(unittest.TestCase):
         self.lua.globals().policy = policy
         self.lua.execute("package.preload['scripts.arcane_misfires.policy']=function() return policy end")
         self.lua.globals().mod = self.lua.execute((MOD/'scripts/arcane_misfires/player.lua').read_text())
-        self.lua.execute('tick(0.1); values.chance=100')
+        self.lua.execute('tick(0.1); values.chance=100; values.criticalChance=0')
 
     def runlua(self, code):
         self.lua.execute(code)
 
     def test_failed_cast_applies_once(self):
         self.runlua("fail(); assert(#applied==1); assert(applied[1].id=='amf_burden_2'); release(); tick(0.1); assert(#applied==1)")
+
+    def test_critical_roll_is_nested_and_uses_one_percent_boundary(self):
+        for miscast_roll, critical_roll, expected in (
+                (0.149, 0.0099, 'amf_burden_2_critical'),
+                (0.149, 0.01, 'amf_burden_2'), (0.15, 0, None)):
+            with self.subTest(miscast=miscast_roll, critical=critical_roll):
+                self.setUp()
+                self.lua.globals().miscastRoll = miscast_roll
+                self.lua.globals().criticalRoll = critical_roll
+                self.runlua('''values.chance=15; values.criticalChance=1; rolls=0
+                    math.random=function() rolls=rolls+1; return rolls==1 and miscastRoll or criticalRoll end
+                    fail()''')
+                applied = self.lua.globals().applied
+                self.assertEqual(len(applied), int(expected is not None))
+                self.assertEqual(self.lua.globals().rolls, 2 if expected else 1)
+                if expected:
+                    self.assertEqual(applied[1].id, expected)
+
+    def test_critical_chance_endpoints_and_severity(self):
+        self.runlua('''values.criticalChance=0; math.random=function() return 0 end
+            fail(); assert(applied[1].id=='amf_burden_2')
+            playing.alteration=false; tick(0.1)
+            values.criticalChance=100; values.severity=1; spell.cost=100
+            math.random=function() return 0.9999 end
+            fail(); assert(applied[2].id=='amf_burden_1_critical')
+            assert(messages[2]=='Critical Failure: amf_burden_1_critical')
+            assert(#experience==2 and mod.interface.getBackfireCount()==2)''')
+
+    def test_critical_settings_save_clamp_and_migrate(self):
+        self.runlua('''values.criticalChance=3.5
+            mod.engineHandlers.onLoad(mod.engineHandlers.onSave()); tick(0.1)
+            assert(values.criticalChance==3.5)
+            values.criticalChance=200; assert(mod.engineHandlers.onSave().settings.criticalChance==100)
+            values.criticalChance=-1; assert(mod.engineHandlers.onSave().settings.criticalChance==0)
+            values.criticalChance=0/0; assert(mod.engineHandlers.onSave().settings.criticalChance==1)
+            mod.engineHandlers.onLoad({version=2,settings={chance=100}}); tick(0.1)
+            assert(values.criticalChance==1)''')
+
+    def test_drop_and_immersion_settings_default_save_and_migrate(self):
+        self.runlua('''assert(values.criticalTeleportDropItems==false and values.immersion==false)
+            values.criticalTeleportDropItems=true; values.immersion=true
+            mod.engineHandlers.onLoad(mod.engineHandlers.onSave()); tick(0.1)
+            assert(values.criticalTeleportDropItems and values.immersion)
+            mod.engineHandlers.onLoad({version=2,settings={chance=100}}); tick(0.1)
+            assert(values.criticalTeleportDropItems==false and values.immersion==false)''')
+
+    def test_critical_drop_plan_and_immersion_are_sent_only_for_teleport(self):
+        self.prepare_teleport('recall')
+        self.runlua('''local wild=require('scripts.arcane_misfires.wild_player')
+            wild.dropPlan=function() return {cellId='origin',positions={}} end
+            values.criticalChance=100; values.criticalTeleportDropItems=true; values.immersion=true
+            failTeleport()
+            assert(events[1].data.dropItems and events[1].data.dropPlan.cellId=='origin')
+            assert(events[1].data.immersion)''')
 
     def test_success_cancels_before_release(self):
         self.runlua("start(); successHandler('alteration',{useType=0}); release(); playing.alteration=true; tick(0.1); assert(#applied==0)")
@@ -208,6 +262,24 @@ class ArcaneTests(unittest.TestCase):
                     assert(mod.interface.getBackfireCount()==1)
                 """)
 
+    def test_critical_teleports_use_arrival_aware_builtin_rules(self):
+        for effect_id in ('recall', 'divineintervention', 'almsiviintervention'):
+            for nifty in (True, False):
+                with self.subTest(effect=effect_id, nifty=nifty):
+                    self.setUp()
+                    self.prepare_teleport(effect_id)
+                    self.lua.globals().niftyInstalled = nifty
+                    self.runlua('''values.criticalChance=100; failTeleport()
+                        assert(#applied==0 and #events==1)
+                        assert(events[1].name=='AMF_WildIntervention' and events[1].data.critical)
+                        assert(messages[1]=='Critical Failure: Wild Intervention')
+                        assert(#experience==1 and mod.interface.getBackfireCount()==1)''')
+
+    def test_critical_teleport_with_toggle_off_uses_scaled_backlash(self):
+        self.prepare_teleport('recall')
+        self.runlua('''values.criticalChance=100; values.niftyWildIntervention=false
+            failTeleport(); assert(applied[1].id=='amf_magicka_2_critical' and #events==0)''')
+
     def test_wild_disabled_uses_ordinary_backlash(self):
         self.prepare_teleport('recall')
         self.runlua("values.niftyWildIntervention=false; failTeleport(); assert(#applied==1 and applied[1].id=='amf_magicka_2' and #events==0)")
@@ -295,13 +367,15 @@ class PackageTests(unittest.TestCase):
             if tag == b'SPEL': spells[fields[b'NAME'][:-1].decode()] = fields
             cursor = end
         entries = json.loads((MOD/'outcomes.json').read_text())
-        self.assertEqual(len(spells),27)
+        self.assertEqual(len(spells),54)
         for entry in entries:
             for i in range(3):
-                fields = spells[f"amf_{entry['key']}_{i+1}"]
-                self.assertEqual(struct.unpack('<iii',fields[b'SPDT']),(0,0,0))
-                self.assertEqual(struct.unpack('<hbbiiiii',fields[b'ENAM']),
-                    (entry['effect'],-1,-1,0,0,entry['duration'][i],entry['magnitude'][i],entry['magnitude'][i]))
+                for suffix, multiplier in (('', 1), ('_critical', 10)):
+                    fields = spells[f"amf_{entry['key']}_{i+1}{suffix}"]
+                    self.assertEqual(struct.unpack('<iii',fields[b'SPDT']),(0,0,0))
+                    magnitude = entry['magnitude'][i] * multiplier
+                    self.assertEqual(struct.unpack('<hbbiiiii',fields[b'ENAM']),
+                        (entry['effect'],-1,-1,0,0,entry['duration'][i],magnitude,magnitude))
 
     def test_archive_matches_source(self):
         with ZipFile(ROOT/f'dist/Arcane-Misfires-{builder.VERSION}.zip') as archive:

@@ -29,9 +29,9 @@ notes in `CHANGELOG.md`. Commit the source, then push that commit and its matchi
 version tag. For the prepared version:
 
 ```powershell
-git tag v0.1.4
+git tag v1.0.0
 git push origin main
-git push origin v0.1.4
+git push origin v1.0.0
 ```
 
 Set your GitHub remote before using these commands. Substitute the branch name
@@ -43,8 +43,8 @@ For Selected branches and tags on the `nexus` environment, add a Branch rule
 uploads by themselves; the variables and secret listed above are still required.
 
 `Publish Releases` builds the tagged source and publishes the exact archive as a
-GitHub Release asset. Versions below 1.0 are marked prereleases, so link to the
-Releases page rather than `/releases/latest` during beta.
+GitHub Release asset. Versions below 1.0 are marked prereleases. Version 1.0.0
+and later are stable releases and are eligible for `/releases/latest`.
 
 When Nexus is enabled, its independent publishing job uploads the same ZIP as a
 new file version, supplies only that version's changelog, and updates the mod-page

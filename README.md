@@ -2,9 +2,15 @@
 
 Failed spells can backfire with temporary, spell-themed penalties in OpenMW.
 
-**Version 0.1.4, beta.** A small standalone gameplay mod, not a magic overhaul.
+**Version 1.0.0, stable.** A small standalone gameplay mod, not a magic overhaul.
 Ordinary failed player casts have a **15% chance** of a backfire by default.
 There is **no cooldown**; every detected failure gets its own roll.
+
+Triggered miscasts have a configurable **1% Critical Failure chance**. This is
+a second roll within the default 15%, giving **0.15% of detected failed casts**
+at default settings. Ordinary critical backlash has **10× magnitude** at the
+chosen severity, with unchanged duration. Silence is an on/off effect, so its
+larger recorded magnitude does not make it block more spells.
 
 Three Scripts settings toggles control failed-cast experience and start enabled:
 **Experience From Failed Casts**, **Experience Only On Misfires**, and
@@ -30,11 +36,11 @@ scale Wild Intervention. No Nifty files are bundled or required.
 
 The Lua APIs used include AnimationController, SkillProgression, Settings,
 `activeSpells:add`, and magic-school failure-sound metadata. Try a disposable save
-before adding the beta to an important playthrough.
+before adding the mod to an important playthrough.
 
 ## Installation
 
-Download **Arcane-Misfires-0.1.4.zip** from the repository's Releases page, or Nexus.
+Download **Arcane-Misfires-1.0.0.zip** from the repository's Releases page, or Nexus.
 GitHub's automatically generated source archives are not installable mod packages.
 
 1. Extract the mod ZIP into its own directory. `ArcaneMisfires.esp`, `ArcaneMisfires.omwscripts`, `scripts`, and `l10n` should be directly inside it.
@@ -108,6 +114,30 @@ Powers, scrolls, enchanted items, successful casts, insufficient-magicka attempt
 and interrupted casts that never release are excluded. NPCs are unaffected.
 
 ### Wild Intervention
+
+With Wild Intervention enabled, a teleport Critical Failure follows the same
+destination, fatigue, and landing rules using the built-in implementation even
+when Nifty is installed. After successful arrival, all equipment is unequipped
+and the original High Elf teleportation voice line plays. Items remain in the
+inventory. Failed or blocked teleports do not unequip gear or play the line.
+Turning Wild Intervention off restores ordinary backlash, including its 10×
+critical magnitude. Critical chance can be set from 0% (disabled) to 100% and is
+saved per player; existing saves default to 1%.
+
+Two optional settings default to off, including for existing saves:
+
+- **Critical Teleport Failure - Drop All Items** leaves the entire inventory at
+  the departure point before a critical teleport: equipped gear, consumables,
+  gold, keys and quest items included. Original item stacks are moved with their
+  contents intact. Nearby floor positions are checked with short rays and a
+  clear path, then placed at one common height with ground snapping disabled.
+  Positions are reused for large inventories: objects may overlap horizontally,
+  but are never placed progressively higher. If no nearby floor is detected,
+  the player still teleports and equipped gear is unequipped, with all items kept
+  in inventory. Stale floor checks use the same fallback. Blocked teleports and missing
+  destinations also leave inventory untouched.
+- **Immersion** restricts the original voice line to male High Elf (Altmer)
+  characters. It does not change teleportation or inventory behavior.
 
 The standalone implementation follows Nifty Spell Pack 1.0.0's rules. It uses the
 current exterior, or the nearest exterior connected through up to ten load doors.

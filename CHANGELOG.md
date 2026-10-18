@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.0
+
+- First stable release, including configurable Critical Failures. By default, 1% of triggered miscasts are critical (0.15% of detected failed casts with the default 15% miscast chance). Set critical chance to 0% to disable them.
+- Ordinary critical backlash has 10 times the selected tier's magnitude with unchanged duration. Silence remains an on/off effect.
+- With Wild Intervention enabled, teleport criticals follow the built-in destination and landing rules, then unequip all gear and play Morrowind's original male High Elf teleportation voice line on successful arrival. Noncritical miscasts still prefer Nifty Spell Pack's spell when available.
+- Added Critical Teleport Failure - Drop All Items, off by default. This leaves the entire inventory, including gold, keys and quest items, at the departure point. Item stacks remain intact and use checked floor positions at one height. Large inventories may overlap horizontally. Missing or stale floor checks fall back to teleporting and unequipping, keeping the inventory; blocked teleports and unavailable destinations leave items untouched.
+- Added Immersion, off by default, to restrict the teleportation voice line to male Altmer characters. All new settings persist in saves; existing saves receive the 1% critical chance and disabled optional toggles.
+- Added an isolated Critical Failure test with guaranteed criticals, three teleport spells, gear and inventory checks, comparison controls, and F6 to return to the latest departure point. Native OpenMW checks verify inventory drops indoors and outdoors. Test fixtures are excluded from the installable release.
+- Upgrade by replacing the existing mod and enabling the same two content files. The updated ESP is required for the critical spell records; fully restart OpenMW after updating.
+
 ## 0.1.4
 
 - Added Wild Intervention On Teleport Miscasts, enabled by default. Recall, Divine Intervention, and Almsivi Intervention miscasts prefer Nifty Spell Pack's spell when available, otherwise use an independently implemented equivalent. Unchecking the toggle restores normal backlash; the usual chance roll still applies.
